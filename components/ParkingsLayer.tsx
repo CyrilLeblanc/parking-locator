@@ -16,6 +16,13 @@ type ParkingProps = {
   disabled_spaces: number;
   ev_chargers: number;
   bike_spaces: number;
+  fare_1h?: number | null;
+  fare_2h?: number | null;
+  fare_3h?: number | null;
+  fare_4h?: number | null;
+  fare_24h?: number | null;
+  subscription_resident?: number | null;
+  subscription_non_resident?: number | null;
 };
 
 type Availability = Record<string, { free_spaces: number | null }>;
@@ -137,6 +144,12 @@ export default function ParkingsLayer() {
                     </div>
                   </>
                 )}
+                {hasFares(p) && (
+                  <>
+                    <Divider />
+                    <FareTable p={p} />
+                  </>
+                )}
               </div>
             </Popup>
           </Marker>
@@ -190,6 +203,40 @@ function AvailabilityBlock({
         </span>
       </div>
     </div>
+  );
+}
+
+function hasFares(p: ParkingProps): boolean {
+  return [p.fare_1h, p.fare_2h, p.fare_3h, p.fare_4h, p.fare_24h, p.subscription_resident, p.subscription_non_resident].some(
+    (v) => v != null
+  );
+}
+
+function formatFare(value: number): string {
+  return value % 1 === 0 ? `${value} €` : `${value.toFixed(2).replace(".", ",")} €`;
+}
+
+function FareTable({ p }: { p: ParkingProps }) {
+  const rows: { label: string; value: number }[] = [];
+  if (p.fare_1h != null) rows.push({ label: "1h", value: p.fare_1h });
+  if (p.fare_2h != null) rows.push({ label: "2h", value: p.fare_2h });
+  if (p.fare_3h != null) rows.push({ label: "3h", value: p.fare_3h });
+  if (p.fare_4h != null) rows.push({ label: "4h", value: p.fare_4h });
+  if (p.fare_24h != null) rows.push({ label: "24h", value: p.fare_24h });
+  if (p.subscription_resident != null) rows.push({ label: "Abo. résident", value: p.subscription_resident });
+  if (p.subscription_non_resident != null) rows.push({ label: "Abo. non-résident", value: p.subscription_non_resident });
+
+  return (
+    <table className="w-full text-xs border-collapse">
+      <tbody>
+        {rows.map(({ label, value }) => (
+          <tr key={label} className="border-b border-[#f0f0f0] last:border-0">
+            <td className="py-0.5 text-[#666]">{label}</td>
+            <td className="py-0.5 text-right font-medium text-[#333]">{formatFare(value)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
