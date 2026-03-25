@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { CircleMarker, Popup } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { FeatureCollection, Feature, Point } from "geojson";
+import L from "leaflet";
 import { FACILITY_LABELS } from "@/lib/parkingConfig";
 
 type ParkingProps = {
@@ -48,7 +49,7 @@ export default function ParkingsLayer() {
   if (!parkings) return null;
 
   return (
-    <MarkerClusterGroup chunkedLoading disableClusteringAtZoom={14}>
+    <MarkerClusterGroup chunkedLoading disableClusteringAtZoom={14} iconCreateFunction={createClusterIcon}>
       {parkings.features.map((feature: Feature) => {
         const p = feature.properties as ParkingProps;
         const id = feature.id as string;
@@ -101,6 +102,23 @@ export default function ParkingsLayer() {
       })}
     </MarkerClusterGroup>
   );
+}
+
+function createClusterIcon(cluster: { getChildCount: () => number }) {
+  const count = cluster.getChildCount();
+  const size = count < 10 ? 34 : count < 20 ? 40 : 46;
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:rgba(20,20,20,0.88);border:2px solid #fff;
+      color:#fff;font-weight:700;font-size:${size < 40 ? 13 : 15}px;
+      display:flex;align-items:center;justify-content:center;
+      font-family:sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.4);
+    ">${count}</div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
 }
 
 function AvailabilityBlock({
