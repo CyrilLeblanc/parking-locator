@@ -3,7 +3,8 @@
 import { MapContainer, TileLayer } from "react-leaflet";
 import ZonesLayer from "./ZonesLayer";
 import ParkingsLayer from "./ParkingsLayer";
-import MapLegend from "./MapLegend";
+import ParkingLegend from "./ParkingLegend";
+import ZoneLegend from "./ZoneLegend";
 import "leaflet/dist/leaflet.css";
 
 export default function Map() {
@@ -16,7 +17,8 @@ export default function Map() {
       <TileLayer url="https://data.mobilites-m.fr/carte-dark/{z}/{x}/{y}.png" />
       <ZonesLayer />
       <ParkingsLayer />
-      <MapLegend />
+      <ParkingLegend />
+      <ZoneLegend />
     </MapContainer>
   );
 }
