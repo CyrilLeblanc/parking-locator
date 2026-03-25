@@ -1,4 +1,5 @@
 import { ZONE_COLORS, ZONE_PRICES } from "@/lib/zoneConfig";
+import { FACILITY_COLORS, FACILITY_LABELS } from "@/lib/parkingConfig";
 
 export default function MapLegend() {
   return (
@@ -17,13 +18,34 @@ export default function MapLegend() {
         pointerEvents: "none",
       }}
     >
+      <div style={{ fontWeight: 600, marginBottom: 4, opacity: 0.6, fontSize: 11, textTransform: "uppercase" }}>
+        Parkings en ouvrage
+      </div>
+      {Object.entries(FACILITY_COLORS).map(([type, color]) => (
+        <div key={type} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span
+            style={{
+              display: "inline-block",
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              background: color,
+              opacity: 0.85,
+            }}
+          />
+          <span>{FACILITY_LABELS[type]}</span>
+        </div>
+      ))}
+      <div style={{ fontWeight: 600, marginTop: 10, marginBottom: 4, opacity: 0.6, fontSize: 11, textTransform: "uppercase" }}>
+        Zones voirie
+      </div>
       {Object.entries(ZONE_COLORS).map(([zone, color]) => (
         <div key={zone} style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span
             style={{
               display: "inline-block",
-              width: 14,
-              height: 14,
+              width: 12,
+              height: 12,
               borderRadius: 3,
               background: color,
               opacity: 0.85,

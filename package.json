@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "import:zones": "tsx --env-file=.env.local scripts/import-zones.ts"
+    "import:zones": "tsx --env-file=.env.local scripts/import-zones.ts",
+    "import:parkings": "tsx --env-file=.env.local scripts/import-parkings.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
