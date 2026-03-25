@@ -12,7 +12,7 @@ export default function Map() {
     <MapContainer
       center={[45.1885, 5.7245]}
       zoom={14}
-      style={{ height: "100%", width: "100%" }}
+      className="h-full w-full bg-[#3b373f]"
     >
       <TileLayer url="https://data.mobilites-m.fr/carte-dark/{z}/{x}/{y}.png" />
       <ZonesLayer />

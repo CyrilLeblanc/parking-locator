@@ -2,35 +2,15 @@ import { ZONE_COLORS, ZONE_PRICES } from "@/lib/zoneConfig";
 
 export default function ZoneLegend() {
   return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: 24,
-        left: 10,
-        zIndex: 1000,
-        background: "rgba(30,30,30,0.85)",
-        borderRadius: 8,
-        padding: "10px 14px",
-        color: "#fff",
-        fontSize: 13,
-        lineHeight: "1.7",
-        pointerEvents: "none",
-      }}
-    >
-      <div style={{ fontWeight: 600, marginBottom: 4, opacity: 0.6, fontSize: 11, textTransform: "uppercase" }}>
+    <div className="absolute bottom-6 left-2.5 z-[1000] bg-black/85 rounded-lg px-3.5 py-2.5 text-white text-[13px] leading-[1.7] pointer-events-none">
+      <div className="font-semibold mb-1 opacity-60 text-[11px] uppercase">
         Zones voirie
       </div>
       {Object.entries(ZONE_COLORS).map(([zone, color]) => (
-        <div key={zone} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div key={zone} className="flex items-center gap-2">
           <span
-            style={{
-              display: "inline-block",
-              width: 12,
-              height: 12,
-              borderRadius: 3,
-              background: color,
-              opacity: 0.85,
-            }}
+            className="inline-block w-3 h-3 rounded-sm shrink-0 opacity-85"
+            style={{ background: color }}
           />
           <span>{ZONE_PRICES[zone]}</span>
         </div>

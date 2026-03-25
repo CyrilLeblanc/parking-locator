@@ -6,34 +6,15 @@ const AVAILABILITY_LEGEND = [
 
 export default function ParkingLegend() {
   return (
-    <div
-      style={{
-        position: "absolute",
-        bottom: 24,
-        right: 10,
-        zIndex: 1000,
-        background: "rgba(30,30,30,0.85)",
-        borderRadius: 8,
-        padding: "10px 14px",
-        color: "#fff",
-        fontSize: 13,
-        lineHeight: "1.7",
-        pointerEvents: "none",
-      }}
-    >
-      <div style={{ fontWeight: 600, marginBottom: 4, opacity: 0.6, fontSize: 11, textTransform: "uppercase" }}>
+    <div className="absolute bottom-6 right-2.5 z-[1000] bg-black/85 rounded-lg px-3.5 py-2.5 text-white text-[13px] leading-[1.7] pointer-events-none">
+      <div className="font-semibold mb-1 opacity-60 text-[11px] uppercase">
         Disponibilité
       </div>
       {AVAILABILITY_LEGEND.map(({ color, label }) => (
-        <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div key={label} className="flex items-center gap-2">
           <span
-            style={{
-              display: "inline-block",
-              width: 12,
-              height: 12,
-              borderRadius: "50%",
-              background: color,
-            }}
+            className="inline-block w-3 h-3 rounded-full shrink-0"
+            style={{ background: color }}
           />
           <span>{label}</span>
         </div>

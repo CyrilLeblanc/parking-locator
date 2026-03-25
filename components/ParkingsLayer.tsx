@@ -66,7 +66,7 @@ export default function ParkingsLayer() {
             pathOptions={{ color: "#ffffff", fillColor, fillOpacity: 0.9, weight: 1.5 }}
           >
             <Popup>
-              <div style={{ minWidth: 200, fontFamily: "sans-serif" }}>
+              <div className="min-w-[200px] font-sans">
                 {avail !== undefined && avail.free_spaces !== null && (
                   <>
                     <AvailabilityBlock
@@ -77,17 +77,17 @@ export default function ParkingsLayer() {
                     <Divider />
                   </>
                 )}
-                <div style={{ marginBottom: 4 }}>
-                  <strong style={{ fontSize: 14 }}>{p.name}</strong>
-                  <div style={{ fontSize: 12, color: "#888", marginTop: 2 }}>{p.address}</div>
-                  <div style={{ fontSize: 12, color: "#555", marginTop: 4 }}>
+                <div className="mb-1">
+                  <strong className="text-sm">{p.name}</strong>
+                  <div className="text-xs text-[#888] mt-0.5">{p.address}</div>
+                  <div className="text-xs text-[#555] mt-1">
                     {FACILITY_LABELS[p.facility_type] ?? p.facility_type} · {p.total_capacity} places
                   </div>
                 </div>
                 {(p.free || p.disabled_spaces > 0 || p.ev_chargers > 0 || p.bike_spaces > 0) && (
                   <>
                     <Divider />
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <div className="flex gap-1 flex-wrap">
                       {p.free && <Badge label="Gratuit" color="#4caf50" />}
                       {p.disabled_spaces > 0 && <Badge label="PMR" color="#2196f3" />}
                       {p.ev_chargers > 0 && <Badge label="Borne EV" color="#ff9800" />}
@@ -132,31 +132,18 @@ function AvailabilityBlock({
 }) {
   const pct = totalCapacity > 0 ? Math.round((freeSpaces / totalCapacity) * 100) : 0;
   return (
-    <div style={{ marginBottom: 8 }}>
-      <div style={{ fontWeight: 700, fontSize: 15, color, marginBottom: 6 }}>
+    <div className="mb-2">
+      <div className="font-bold text-[15px] mb-1.5" style={{ color }}>
         {freeSpaces === 0 ? "Complet" : `${freeSpaces} places libres`}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <div
-          style={{
-            flex: 1,
-            height: 6,
-            borderRadius: 3,
-            background: "#e0e0e0",
-            overflow: "hidden",
-          }}
-        >
+      <div className="flex items-center gap-2">
+        <div className="flex-1 h-1.5 rounded bg-[#e0e0e0] overflow-hidden">
           <div
-            style={{
-              width: `${pct}%`,
-              height: "100%",
-              background: color,
-              borderRadius: 3,
-              transition: "width 0.3s",
-            }}
+            className="h-full rounded transition-[width] duration-300"
+            style={{ width: `${pct}%`, background: color }}
           />
         </div>
-        <span style={{ fontSize: 11, color: "#888", whiteSpace: "nowrap" }}>
+        <span className="text-[11px] text-[#888] whitespace-nowrap">
           {freeSpaces} / {totalCapacity}
         </span>
       </div>
@@ -165,20 +152,14 @@ function AvailabilityBlock({
 }
 
 function Divider() {
-  return <hr style={{ border: "none", borderTop: "1px solid #eee", margin: "8px 0" }} />;
+  return <hr className="border-0 border-t border-[#eee] my-2" />;
 }
 
 function Badge({ label, color }: { label: string; color: string }) {
   return (
     <span
-      style={{
-        background: color,
-        color: "#fff",
-        borderRadius: 4,
-        padding: "1px 6px",
-        fontSize: 11,
-        fontWeight: 600,
-      }}
+      className="text-white rounded px-1.5 py-px text-[11px] font-semibold"
+      style={{ background: color }}
     >
       {label}
     </span>
