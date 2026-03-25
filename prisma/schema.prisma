@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Parking {
+  id             String   @id
+  name           String
+  address        String
+  city           String
+  insee_code     String   @db.Char(5)
+  facility_type  String
+  free           Boolean
+  total_capacity Int
+  disabled_spaces Int
+  ev_chargers    Int
+  bike_spaces    Int
+  max_height     Float?
+  operator       String?
+  siret          String?
+  info_url       String?
+  fare_url       String?
+  updated_at     DateTime @updatedAt
+
+  // PostGIS point — insert/read via $queryRaw
+  position       Unsupported("geometry(Point, 4326)")?
+
+  fare           ParkingFare?
+  availability   ParkingAvailability?
+
+  @@map("parking")
+}
+
+model ParkingFare {
+  parking_id                String   @id
+  fare_1h                   Float?
+  fare_2h                   Float?
+  fare_3h                   Float?
+  fare_4h                   Float?
+  fare_24h                  Float?
+  fare_disabled             Float?
+  subscription_resident     Float?
+  subscription_non_resident Float?
+  source                    String
+  updated_at                DateTime @updatedAt
+
+  parking Parking @relation(fields: [parking_id], references: [id])
+
+  @@map("parking_fare")
+}
+
+model ParkingAvailability {
+  parking_id           String   @id
+  free_spaces          Int?
+  free_facility_spaces Int?
+  free_pr_spaces       Int?
+  status               String
+  fetched_at           DateTime
+
+  parking Parking @relation(fields: [parking_id], references: [id])
+
+  @@map("parking_availability")
+}
+
+model StreetParkingZone {
+  id          String @id
+  name        String
+  zone_color  String
+  hourly_fare Float
+
+  // PostGIS geometry — Polygon or MultiPolygon, insert/read via $queryRaw
+  geometry    Unsupported("geometry")?
+
+  @@map("street_parking_zone")
+}
