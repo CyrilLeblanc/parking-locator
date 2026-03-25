@@ -37,6 +37,19 @@ export default function MapLegend() {
         </div>
       ))}
       <div style={{ fontWeight: 600, marginTop: 10, marginBottom: 4, opacity: 0.6, fontSize: 11, textTransform: "uppercase" }}>
+        Disponibilité
+      </div>
+      {[
+        { color: "#4caf50", label: "Places disponibles" },
+        { color: "#f44336", label: "Complet" },
+        { color: "#999",    label: "Pas de données" },
+      ].map(({ color, label }) => (
+        <div key={label} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ display: "inline-block", width: 12, height: 12, borderRadius: "50%", background: color, opacity: 0.85 }} />
+          <span>{label}</span>
+        </div>
+      ))}
+      <div style={{ fontWeight: 600, marginTop: 10, marginBottom: 4, opacity: 0.6, fontSize: 11, textTransform: "uppercase" }}>
         Zones voirie
       </div>
       {Object.entries(ZONE_COLORS).map(([zone, color]) => (

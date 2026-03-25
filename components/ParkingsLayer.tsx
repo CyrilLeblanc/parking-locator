@@ -16,13 +16,28 @@ type ParkingProps = {
   bike_spaces: number;
 };
 
+type Availability = Record<string, { free_spaces: number | null }>;
+
+function availabilityFillColor(freeSpaces: number | null | undefined, fallback: string): string {
+  if (freeSpaces === undefined) return fallback;
+  if (freeSpaces === null) return fallback;
+  if (freeSpaces === 0) return "#f44336";
+  return "#4caf50";
+}
+
 export default function ParkingsLayer() {
   const [parkings, setParkings] = useState<FeatureCollection | null>(null);
+  const [availability, setAvailability] = useState<Availability>({});
 
   useEffect(() => {
-    fetch("/api/parkings")
-      .then((res) => res.json())
-      .then(setParkings)
+    Promise.all([
+      fetch("/api/parkings").then((r) => r.json()),
+      fetch("/api/availability").then((r) => r.json()),
+    ])
+      .then(([parkingsData, availabilityData]) => {
+        setParkings(parkingsData);
+        setAvailability(availabilityData);
+      })
       .catch(console.error);
   }, []);
 
@@ -32,15 +47,18 @@ export default function ParkingsLayer() {
     <>
       {parkings.features.map((feature: Feature) => {
         const p = feature.properties as ParkingProps;
+        const id = feature.id as string;
         const [lng, lat] = (feature.geometry as Point).coordinates;
-        const color = FACILITY_COLORS[p.facility_type] ?? "#999";
+        const strokeColor = FACILITY_COLORS[p.facility_type] ?? "#999";
+        const avail = availability[id];
+        const fillColor = availabilityFillColor(avail?.free_spaces, strokeColor);
 
         return (
           <CircleMarker
-            key={feature.id as string}
+            key={id}
             center={[lat, lng]}
             radius={8}
-            pathOptions={{ color, fillColor: color, fillOpacity: 0.85, weight: 1.5 }}
+            pathOptions={{ color: strokeColor, fillColor, fillOpacity: 0.85, weight: 2 }}
           >
             <Popup>
               <div style={{ minWidth: 180 }}>
@@ -49,9 +67,18 @@ export default function ParkingsLayer() {
                 <div style={{ marginBottom: 6 }}>
                   {FACILITY_LABELS[p.facility_type] ?? p.facility_type}
                 </div>
-                <div style={{ marginBottom: 8 }}>
+                <div style={{ marginBottom: 6 }}>
                   {p.total_capacity} places
                 </div>
+                {avail !== undefined && (
+                  <div style={{ marginBottom: 8, fontWeight: 600, color: fillColor }}>
+                    {avail.free_spaces === null
+                      ? null
+                      : avail.free_spaces === 0
+                      ? "Complet"
+                      : `${avail.free_spaces} places libres`}
+                  </div>
+                )}
                 <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
                   {p.free && <Badge label="Gratuit" color="#4caf50" />}
                   {p.disabled_spaces > 0 && <Badge label="PMR" color="#2196f3" />}
