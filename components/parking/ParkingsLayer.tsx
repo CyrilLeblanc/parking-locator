@@ -91,7 +91,7 @@ export default function ParkingsLayer() {
 
         return (
           <Marker
-            key={id}
+            key={`${id}-${estimationDuration ?? "none"}`}
             position={[lat, lng]}
             icon={icon}
             opacity={matches ? 1 : 0.2}
