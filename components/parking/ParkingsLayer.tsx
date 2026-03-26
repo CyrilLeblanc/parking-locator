@@ -1,7 +1,7 @@
 "use client";
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { Marker } from "react-leaflet";
+import { Marker, Tooltip } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Feature, Point } from "geojson";
 import L from "leaflet";
@@ -9,6 +9,8 @@ import type { ParkingFeatureProperties } from "@/types/parking";
 import { ParkingPinIcon } from "./ParkingPinIcon";
 import { useParkings } from "@/hooks/use-parkings";
 import { useMapSelection } from "@/contexts/map-selection";
+import { useFilters } from "@/contexts/filters";
+import { estimateParkingFare, formatFareValue } from "@/lib/fareEstimation";
 
 function createParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
   let bubbleBg: string;
@@ -62,6 +64,7 @@ function createClusterIcon(cluster: { getChildCount: () => number }) {
 export default function ParkingsLayer() {
   const { parkings, availability } = useParkings();
   const { selectParking } = useMapSelection();
+  const { estimationDuration } = useFilters();
 
   if (!parkings) return null;
 
@@ -73,6 +76,16 @@ export default function ParkingsLayer() {
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
         const icon = createParkingIcon(avail?.free_spaces);
+
+        let priceLabel: string | null = null;
+        if (estimationDuration !== null) {
+          if (p.free) {
+            priceLabel = "Gratuit";
+          } else {
+            const estimated = estimateParkingFare(p, estimationDuration);
+            priceLabel = estimated !== null ? formatFareValue(estimated) : "?";
+          }
+        }
 
         return (
           <Marker
@@ -102,7 +115,13 @@ export default function ParkingsLayer() {
                   free_spaces: avail?.free_spaces ?? null,
                 }),
             }}
-          />
+          >
+            {priceLabel !== null && (
+              <Tooltip permanent direction="bottom" offset={[0, 4]} className="price-tooltip">
+                {priceLabel}
+              </Tooltip>
+            )}
+          </Marker>
         );
       })}
     </MarkerClusterGroup>

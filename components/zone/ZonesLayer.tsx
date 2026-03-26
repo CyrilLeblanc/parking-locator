@@ -7,6 +7,7 @@ import type { Layer, PathOptions } from "leaflet";
 import { ZONE_COLORS } from "@/lib/zoneConfig";
 import { useZones } from "@/hooks/use-zones";
 import { useMapSelection } from "@/contexts/map-selection";
+import type { ZoneFeatureProperties } from "@/types/zone";
 
 function zoneStyle(feature?: GeoJSON.Feature): PathOptions {
   const color = ZONE_COLORS[feature?.properties?.zone_color] ?? "#999";
@@ -27,8 +28,9 @@ export default function ZonesLayer() {
   // Stable callback — uses ref so closure never goes stale
   const onEachFeature = useCallback((feature: Feature, layer: Layer) => {
     (layer as L.Path).on("click", () => {
-      const zone_color = feature.properties?.zone_color;
-      if (zone_color) selectZoneRef.current(zone_color);
+      if (feature.properties?.zone_color) {
+        selectZoneRef.current(feature.properties as ZoneFeatureProperties);
+      }
     });
   }, []);
 

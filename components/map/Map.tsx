@@ -2,33 +2,40 @@
 
 import { MapContainer, TileLayer } from "react-leaflet";
 import { MapSelectionProvider } from "@/contexts/map-selection";
+import { FiltersProvider } from "@/contexts/filters";
 import ZonesLayer from "@/components/zone/ZonesLayer";
 import ParkingsLayer from "@/components/parking/ParkingsLayer";
-import ParkingLegend from "@/components/parking/ParkingLegend";
 import ZoneLegend from "@/components/zone/ZoneLegend";
 import ZoneBottomSheet from "@/components/zone/ZoneBottomSheet";
 import ParkingBottomSheet from "@/components/parking/ParkingBottomSheet";
+import FilterBar from "@/components/map/FilterBar";
+import DurationFilter from "@/components/map/filters/DurationFilter";
 import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
 import "leaflet/dist/leaflet.css";
 
 export default function Map() {
   return (
-    <MapSelectionProvider>
-      <div className="relative h-full w-full">
-        <MapContainer
-          center={MAP_CENTER}
-          zoom={MAP_ZOOM}
-          className="h-full w-full bg-[#3b373f]"
-        >
-          <TileLayer url={MAP_TILE_URL} />
-          <ZonesLayer />
-          <ParkingsLayer />
-          <ParkingLegend />
-        </MapContainer>
-        <ZoneLegend />
-        <ZoneBottomSheet />
-        <ParkingBottomSheet />
-      </div>
-    </MapSelectionProvider>
+    <FiltersProvider>
+      <MapSelectionProvider>
+        <div className="relative h-full w-full">
+          <MapContainer
+            center={MAP_CENTER}
+            zoom={MAP_ZOOM}
+            zoomControl={false}
+            className="h-full w-full bg-[#3b373f]"
+          >
+            <TileLayer url={MAP_TILE_URL} />
+            <ZonesLayer />
+            <ParkingsLayer />
+            </MapContainer>
+          <FilterBar>
+            <DurationFilter />
+          </FilterBar>
+          <ZoneLegend />
+          <ZoneBottomSheet />
+          <ParkingBottomSheet />
+        </div>
+      </MapSelectionProvider>
+    </FiltersProvider>
   );
 }

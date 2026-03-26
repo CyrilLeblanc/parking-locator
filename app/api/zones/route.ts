@@ -12,7 +12,7 @@ export async function GET() {
       properties: {
         name: row.name,
         zone_color: row.zone_color,
-        hourly_fare: row.hourly_fare,
+        fare_brackets: row.fare_brackets,
       },
     })),
   };

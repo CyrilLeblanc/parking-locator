@@ -81,13 +81,22 @@ model ParkingHistory {
 }
 
 model StreetParkingZone {
-  id          String @id
-  name        String
-  zone_color  String
-  hourly_fare Float
+  id         String @id
+  name       String
+  zone_color String
 
   // PostGIS geometry — Polygon or MultiPolygon, insert/read via $queryRaw
-  geometry    Unsupported("geometry")?
+  geometry   Unsupported("geometry")?
 
   @@map("street_parking_zone")
+}
+
+model StreetParkingFareBracket {
+  zone_color   String
+  duration_min Int
+  fare         Float
+  is_penalty   Boolean @default(false)
+
+  @@id([zone_color, duration_min])
+  @@map("street_parking_fare_bracket")
 }

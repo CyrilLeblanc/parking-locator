@@ -15,7 +15,6 @@ export type ZoneStatusResult = {
 };
 
 type TimeWindow = { from: string; to: string }; // "09:00"
-type TarifRow = { label: string; price: string };
 
 type ZoneScheduleInfo = {
   group: ZoneGroup;
@@ -23,7 +22,6 @@ type ZoneScheduleInfo = {
   colors: string[];
   maxDuration: string;
   freeMinutes?: number;
-  tarifRows: TarifRow[];
   paidWindows: TimeWindow[];
   halfFareWindows?: TimeWindow[];
   horaires: string;
@@ -38,14 +36,6 @@ export const ZONE_SCHEDULE: Record<ZoneGroup, ZoneScheduleInfo> = {
     colors: ["vert"],
     maxDuration: "8h30",
     horaires: "Lun–Sam : 9h–12h et 14h–19h",
-    tarifRows: [
-      { label: "15 min", price: "0,50 €" },
-      { label: "1 h", price: "2,00 €" },
-      { label: "2 h", price: "4,00 €" },
-      { label: "4 h", price: "6,50 €" },
-      { label: "8 h", price: "10,50 €" },
-      { label: "8h30 (max)", price: "35 €" },
-    ],
     paidWindows: [
       { from: "09:00", to: "12:00" },
       { from: "14:00", to: "19:00" },
@@ -58,13 +48,6 @@ export const ZONE_SCHEDULE: Record<ZoneGroup, ZoneScheduleInfo> = {
     maxDuration: "3h30",
     freeMinutes: 20,
     horaires: "Lun–Sam : 9h–19h (demi-tarif 12h–14h)",
-    tarifRows: [
-      { label: "10 min", price: "0,50 €" },
-      { label: "30 min", price: "1,50 €" },
-      { label: "1 h", price: "3,00 €" },
-      { label: "2 h", price: "5,00 €" },
-      { label: "3 h", price: "7,00 €" },
-    ],
     paidWindows: [{ from: "09:00", to: "19:00" }],
     halfFareWindows: [{ from: "12:00", to: "14:00" }],
   },

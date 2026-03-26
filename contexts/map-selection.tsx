@@ -2,12 +2,13 @@
 
 import { createContext, useCallback, useContext, useState } from "react";
 import type { SelectedParking } from "@/types/parking";
+import type { ZoneFeatureProperties } from "@/types/zone";
 
 type MapSelectionContextValue = {
   selectedParking: SelectedParking | null;
-  selectedZone: string | null;
+  selectedZone: ZoneFeatureProperties | null;
   selectParking: (p: SelectedParking) => void;
-  selectZone: (color: string) => void;
+  selectZone: (props: ZoneFeatureProperties) => void;
   clearSelection: () => void;
 };
 
@@ -15,16 +16,16 @@ const MapSelectionContext = createContext<MapSelectionContextValue | null>(null)
 
 export function MapSelectionProvider({ children }: { children: React.ReactNode }) {
   const [selectedParking, setSelectedParking] = useState<SelectedParking | null>(null);
-  const [selectedZone, setSelectedZone] = useState<string | null>(null);
+  const [selectedZone, setSelectedZone] = useState<ZoneFeatureProperties | null>(null);
 
   const selectParking = useCallback((p: SelectedParking) => {
     setSelectedZone(null);
     setSelectedParking(p);
   }, []);
 
-  const selectZone = useCallback((color: string) => {
+  const selectZone = useCallback((props: ZoneFeatureProperties) => {
     setSelectedParking(null);
-    setSelectedZone(color);
+    setSelectedZone(props);
   }, []);
 
   const clearSelection = useCallback(() => {

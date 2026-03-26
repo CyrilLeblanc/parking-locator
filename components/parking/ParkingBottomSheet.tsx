@@ -20,8 +20,10 @@ import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useMapSelection } from "@/contexts/map-selection";
+import { useFilters } from "@/contexts/filters";
 import { useParkingHistory } from "@/hooks/use-parking-history";
 import { NavigateButton } from "@/components/NavigateButton";
+import { estimateParkingFare, formatDuration, formatFareValue } from "@/lib/fareEstimation";
 import type { SelectedParking } from "@/types/parking";
 
 const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -33,6 +35,7 @@ function formatFare(value: number): string {
 function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClose: () => void }) {
   const today = (new Date().getDay() + 6) % 7;
   const [selectedDay, setSelectedDay] = useState(today);
+  const { estimationDuration } = useFilters();
   const { history, loading } = useParkingHistory(parking.id, selectedDay);
 
   const occupancyPct =
@@ -43,12 +46,12 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
   const availColor =
     parking.free_spaces === null ? "#7b8fa1" : parking.free_spaces === 0 ? "#f44336" : "#4caf50";
 
-  const fareRows: { label: string; value: number }[] = [];
-  if (parking.fare_1h != null) fareRows.push({ label: "1h", value: parking.fare_1h });
-  if (parking.fare_2h != null) fareRows.push({ label: "2h", value: parking.fare_2h });
-  if (parking.fare_3h != null) fareRows.push({ label: "3h", value: parking.fare_3h });
-  if (parking.fare_4h != null) fareRows.push({ label: "4h", value: parking.fare_4h });
-  if (parking.fare_24h != null) fareRows.push({ label: "24h", value: parking.fare_24h });
+  const fareRows: { label: string; value: number; durationMin?: number }[] = [];
+  if (parking.fare_1h != null) fareRows.push({ label: "1h", value: parking.fare_1h, durationMin: 60 });
+  if (parking.fare_2h != null) fareRows.push({ label: "2h", value: parking.fare_2h, durationMin: 120 });
+  if (parking.fare_3h != null) fareRows.push({ label: "3h", value: parking.fare_3h, durationMin: 180 });
+  if (parking.fare_4h != null) fareRows.push({ label: "4h", value: parking.fare_4h, durationMin: 240 });
+  if (parking.fare_24h != null) fareRows.push({ label: "24h", value: parking.fare_24h, durationMin: 1440 });
   if (parking.subscription_resident != null)
     fareRows.push({ label: "Abo. résident", value: parking.subscription_resident });
   if (parking.subscription_non_resident != null)
@@ -130,15 +133,38 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
       {/* Fares */}
       {fareRows.length > 0 && (
         <div className="mb-4">
-          <p className="text-[11px] font-semibold uppercase text-muted-foreground mb-1.5">Tarifs</p>
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] font-semibold uppercase text-muted-foreground">Tarifs</p>
+            {estimationDuration !== null && (() => {
+              const estimated = parking.free
+                ? 0
+                : estimateParkingFare(parking, estimationDuration);
+              if (estimated === null) return null;
+              return (
+                <span className="text-xs font-semibold text-primary">
+                  {formatDuration(estimationDuration)} → {formatFareValue(estimated)}
+                </span>
+              );
+            })()}
+          </div>
           <table className="w-full text-xs border-collapse">
             <tbody>
-              {fareRows.map(({ label, value }) => (
-                <tr key={label} className="border-b border-border last:border-0">
-                  <td className="py-1 text-muted-foreground">{label}</td>
-                  <td className="py-1 text-right font-medium">{formatFare(value)}</td>
-                </tr>
-              ))}
+              {fareRows.map(({ label, value, durationMin }) => {
+                const isHighlighted =
+                  estimationDuration !== null &&
+                  !parking.free &&
+                  estimateParkingFare(parking, estimationDuration) === value &&
+                  (durationMin ?? Infinity) >= estimationDuration;
+                return (
+                  <tr
+                    key={label}
+                    className={`border-b border-border last:border-0 ${isHighlighted ? "bg-primary/5" : ""}`}
+                  >
+                    <td className="py-1 text-muted-foreground">{label}</td>
+                    <td className="py-1 text-right font-medium">{formatFare(value)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
