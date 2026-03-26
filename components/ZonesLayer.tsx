@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { GeoJSON } from "react-leaflet";
-import type { FeatureCollection } from "geojson";
-import type { PathOptions } from "leaflet";
+import type { FeatureCollection, Feature } from "geojson";
+import type { Layer, PathOptions } from "leaflet";
 import { ZONE_COLORS } from "@/lib/zoneConfig";
 
 function zoneStyle(feature?: GeoJSON.Feature): PathOptions {
@@ -16,8 +16,17 @@ function zoneStyle(feature?: GeoJSON.Feature): PathOptions {
   };
 }
 
-export default function ZonesLayer() {
+type Props = {
+  onZoneClick: (zone_color: string) => void;
+};
+
+export default function ZonesLayer({ onZoneClick }: Props) {
   const [zones, setZones] = useState<FeatureCollection | null>(null);
+  const onClickRef = useRef(onZoneClick);
+
+  useEffect(() => {
+    onClickRef.current = onZoneClick;
+  }, [onZoneClick]);
 
   useEffect(() => {
     fetch("/api/zones")
@@ -26,9 +35,22 @@ export default function ZonesLayer() {
       .catch(console.error);
   }, []);
 
+  // Stable callback — uses ref so closure never goes stale
+  const onEachFeature = useCallback((feature: Feature, layer: Layer) => {
+    (layer as L.Path).on("click", () => {
+      const zone_color = feature.properties?.zone_color;
+      if (zone_color) onClickRef.current(zone_color);
+    });
+  }, []);
+
   if (!zones) return null;
 
   return (
-    <GeoJSON key={zones.features.length} data={zones} style={zoneStyle} />
+    <GeoJSON
+      key={zones.features.length}
+      data={zones}
+      style={zoneStyle}
+      onEachFeature={onEachFeature}
+    />
   );
 }
