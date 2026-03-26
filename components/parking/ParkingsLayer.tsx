@@ -10,6 +10,7 @@ import { ParkingPinIcon } from "./ParkingPinIcon";
 import { useParkings } from "@/hooks/use-parkings";
 import { useMapSelection } from "@/contexts/map-selection";
 import { useFilters } from "@/contexts/filters";
+import { matchesParkingFilters } from "@/lib/parkingFilters";
 import { estimateParkingFare, formatFareValue } from "@/lib/fareEstimation";
 
 function createParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
@@ -64,7 +65,7 @@ function createClusterIcon(cluster: { getChildCount: () => number }) {
 export default function ParkingsLayer() {
   const { parkings, availability } = useParkings();
   const { selectParking } = useMapSelection();
-  const { estimationDuration } = useFilters();
+  const { estimationDuration, activeFilters, activeFilterCount } = useFilters();
 
   if (!parkings) return null;
 
@@ -76,6 +77,7 @@ export default function ParkingsLayer() {
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
         const icon = createParkingIcon(avail?.free_spaces);
+        const matches = activeFilterCount === 0 || matchesParkingFilters(p, activeFilters);
 
         let priceLabel: string | null = null;
         if (estimationDuration !== null) {
@@ -92,6 +94,7 @@ export default function ParkingsLayer() {
             key={id}
             position={[lat, lng]}
             icon={icon}
+            opacity={matches ? 1 : 0.2}
             eventHandlers={{
               click: () =>
                 selectParking({
@@ -117,7 +120,7 @@ export default function ParkingsLayer() {
             }}
           >
             {priceLabel !== null && (
-              <Tooltip permanent direction="bottom" offset={[0, 4]} className="price-tooltip">
+              <Tooltip key={String(matches)} permanent direction="bottom" offset={[0, 4]} className="price-tooltip" opacity={matches ? 1 : 0.2}>
                 {priceLabel}
               </Tooltip>
             )}

@@ -9,6 +9,7 @@ export type ParkingRow = {
   disabled_spaces: number;
   ev_chargers: number;
   bike_spaces: number;
+  max_height: number | null;
   geojson: string;
   fare_1h: number | null;
   fare_2h: number | null;
@@ -29,6 +30,7 @@ export type ParkingFeatureProperties = {
   disabled_spaces: number;
   ev_chargers: number;
   bike_spaces: number;
+  max_height?: number | null;
   fare_1h?: number | null;
   fare_2h?: number | null;
   fare_3h?: number | null;

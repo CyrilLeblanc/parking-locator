@@ -10,6 +10,7 @@ import ZoneBottomSheet from "@/components/zone/ZoneBottomSheet";
 import ParkingBottomSheet from "@/components/parking/ParkingBottomSheet";
 import FilterBar from "@/components/map/FilterBar";
 import DurationFilter from "@/components/map/filters/DurationFilter";
+import ParkingFilters from "@/components/map/filters/ParkingFilters";
 import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
 import "leaflet/dist/leaflet.css";
 
@@ -30,6 +31,7 @@ export default function Map() {
             </MapContainer>
           <FilterBar>
             <DurationFilter />
+            <ParkingFilters />
           </FilterBar>
           <ZoneLegend />
           <ZoneBottomSheet />

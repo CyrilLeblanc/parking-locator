@@ -19,6 +19,7 @@ export async function GET() {
         disabled_spaces: row.disabled_spaces,
         ev_chargers: row.ev_chargers,
         bike_spaces: row.bike_spaces,
+        max_height: row.max_height,
         fare_1h: row.fare_1h,
         fare_2h: row.fare_2h,
         fare_3h: row.fare_3h,

@@ -11,7 +11,7 @@ function slotToTime(slot: number): string {
 export async function getAllParkings(): Promise<ParkingRow[]> {
   return prisma.$queryRaw<ParkingRow[]>`
     SELECT p.id, p.name, p.address, p.city, p.facility_type, p.free, p.total_capacity,
-           p.disabled_spaces, p.ev_chargers, p.bike_spaces,
+           p.disabled_spaces, p.ev_chargers, p.bike_spaces, p.max_height,
            ST_AsGeoJSON(p.position) AS geojson,
            f.fare_1h, f.fare_2h, f.fare_3h, f.fare_4h, f.fare_24h,
            f.subscription_resident, f.subscription_non_resident
