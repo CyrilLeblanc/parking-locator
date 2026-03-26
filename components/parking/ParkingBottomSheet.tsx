@@ -21,6 +21,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useMapSelection } from "@/contexts/map-selection";
 import { useParkingHistory } from "@/hooks/use-parking-history";
+import { NavigateButton } from "@/components/NavigateButton";
 import type { SelectedParking } from "@/types/parking";
 
 const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
@@ -80,9 +81,12 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
             {parking.total_capacity} places
           </p>
         </div>
-        <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer" className="shrink-0 mt-0.5">
-          <XIcon />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0 mt-0.5">
+          <NavigateButton address={parking.address} city={parking.city} />
+          <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer">
+            <XIcon />
+          </Button>
+        </div>
       </div>
 
       {/* Availability */}
