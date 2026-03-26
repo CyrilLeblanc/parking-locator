@@ -7,6 +7,7 @@ import {
   getZoneStatus,
   type ZoneStatus,
 } from "@/lib/zoneConfig";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 const STATUS_BADGE: Record<ZoneStatus, { label: string; cls: string }> = {
   gratuit: { label: "Gratuit", cls: "bg-green-500 text-white" },
@@ -17,6 +18,7 @@ const STATUS_BADGE: Record<ZoneStatus, { label: string; cls: string }> = {
 type Props = { bottomSheetOpen: boolean };
 
 export default function ZoneLegend({ bottomSheetOpen }: Props) {
+  const isMobile = useIsMobile();
   const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
@@ -27,7 +29,7 @@ export default function ZoneLegend({ bottomSheetOpen }: Props) {
   return (
     <div
       className={`absolute left-2.5 z-[1000] bg-black/85 rounded-lg px-3.5 py-2.5 text-white text-[13px] leading-[1.7] pointer-events-none transition-[bottom] duration-300 ${
-        bottomSheetOpen ? "bottom-72" : "bottom-6"
+        bottomSheetOpen && isMobile ? "bottom-72" : "bottom-6"
       }`}
     >
       <div className="font-semibold mb-1 opacity-60 text-[11px] uppercase">
