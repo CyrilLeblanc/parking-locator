@@ -10,7 +10,8 @@
     "import:zones": "tsx --env-file=.env.local scripts/import-zones.ts",
     "import:parkings": "tsx --env-file=.env.local scripts/import-parkings.ts",
     "import:fares": "tsx --env-file=.env.local scripts/import-fares.ts",
-    "collect:history": "tsx --env-file=.env.local scripts/collect-history.ts"
+    "collect:history": "tsx --env-file=.env.local scripts/collect-history.ts",
+    "import": "npm run import:zones && npm run import:parkings && npm run import:fares"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.5.0",
