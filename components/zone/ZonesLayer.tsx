@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { GeoJSON } from "react-leaflet";
-import type { FeatureCollection, Feature } from "geojson";
+import type { Feature } from "geojson";
 import type { Layer, PathOptions } from "leaflet";
 import { ZONE_COLORS } from "@/lib/zoneConfig";
+import { useZones } from "@/hooks/use-zones";
+import { useMapSelection } from "@/contexts/map-selection";
 
 function zoneStyle(feature?: GeoJSON.Feature): PathOptions {
   const color = ZONE_COLORS[feature?.properties?.zone_color] ?? "#999";
@@ -16,30 +18,17 @@ function zoneStyle(feature?: GeoJSON.Feature): PathOptions {
   };
 }
 
-type Props = {
-  onZoneClick: (zone_color: string) => void;
-};
-
-export default function ZonesLayer({ onZoneClick }: Props) {
-  const [zones, setZones] = useState<FeatureCollection | null>(null);
-  const onClickRef = useRef(onZoneClick);
-
-  useEffect(() => {
-    onClickRef.current = onZoneClick;
-  }, [onZoneClick]);
-
-  useEffect(() => {
-    fetch("/api/zones")
-      .then((res) => res.json())
-      .then(setZones)
-      .catch(console.error);
-  }, []);
+export default function ZonesLayer() {
+  const { zones } = useZones();
+  const { selectZone } = useMapSelection();
+  const selectZoneRef = useRef(selectZone);
+  selectZoneRef.current = selectZone;
 
   // Stable callback — uses ref so closure never goes stale
   const onEachFeature = useCallback((feature: Feature, layer: Layer) => {
     (layer as L.Path).on("click", () => {
       const zone_color = feature.properties?.zone_color;
-      if (zone_color) onClickRef.current(zone_color);
+      if (zone_color) selectZoneRef.current(zone_color);
     });
   }, []);
 

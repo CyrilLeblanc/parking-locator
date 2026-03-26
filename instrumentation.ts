@@ -1,4 +1,4 @@
-const INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+import { COLLECT_INTERVAL_MS } from "@/lib/constants";
 
 export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
@@ -11,5 +11,5 @@ export async function register() {
     );
 
   run();
-  setInterval(run, INTERVAL_MS);
+  setInterval(run, COLLECT_INTERVAL_MS);
 }

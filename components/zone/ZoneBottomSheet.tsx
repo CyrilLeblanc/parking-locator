@@ -14,16 +14,12 @@ import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useMapSelection } from "@/contexts/map-selection";
 
 const STATUS_STYLE: Record<ZoneStatus, { cls: string; label: string }> = {
   gratuit: { cls: "bg-green-500 text-white border-transparent", label: "Gratuit" },
   payant: { cls: "bg-neutral-500 text-white border-transparent", label: "Payant" },
   "demi-tarif": { cls: "bg-yellow-400 text-black border-transparent", label: "Demi-tarif" },
-};
-
-type Props = {
-  zone_color: string | null;
-  onClose: () => void;
 };
 
 function ZoneContent({ zone_color, onClose }: { zone_color: string; onClose: () => void }) {
@@ -113,19 +109,20 @@ function ZoneContent({ zone_color, onClose }: { zone_color: string; onClose: () 
   );
 }
 
-export default function ZoneBottomSheet({ zone_color, onClose }: Props) {
+export default function ZoneBottomSheet() {
+  const { selectedZone, clearSelection } = useMapSelection();
   const isMobile = useIsMobile();
-  const handleOpenChange = (open: boolean) => { if (!open) onClose(); };
+  const handleOpenChange = (open: boolean) => { if (!open) clearSelection(); };
 
   if (isMobile) {
     return (
-      <Drawer open={zone_color !== null} onOpenChange={handleOpenChange}>
+      <Drawer open={selectedZone !== null} onOpenChange={handleOpenChange}>
         <DrawerContent className="z-[2000]">
-          {zone_color && (
+          {selectedZone && (
             <>
               <DrawerTitle className="sr-only">Zone de stationnement</DrawerTitle>
               <DrawerDescription className="sr-only">Informations sur la zone</DrawerDescription>
-              <ZoneContent zone_color={zone_color} onClose={onClose} />
+              <ZoneContent zone_color={selectedZone} onClose={clearSelection} />
             </>
           )}
         </DrawerContent>
@@ -134,17 +131,17 @@ export default function ZoneBottomSheet({ zone_color, onClose }: Props) {
   }
 
   return (
-    <Sheet open={zone_color !== null} onOpenChange={handleOpenChange}>
+    <Sheet open={selectedZone !== null} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
         showCloseButton={false}
         className="z-[2000] w-[400px] sm:max-w-[400px] p-0"
       >
-        {zone_color && (
+        {selectedZone && (
           <>
             <SheetTitle className="sr-only">Zone de stationnement</SheetTitle>
             <SheetDescription className="sr-only">Informations sur la zone</SheetDescription>
-            <ZoneContent zone_color={zone_color} onClose={onClose} />
+            <ZoneContent zone_color={selectedZone} onClose={clearSelection} />
           </>
         )}
       </SheetContent>

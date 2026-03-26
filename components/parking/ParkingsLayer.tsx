@@ -1,34 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Marker } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
-import type { FeatureCollection, Feature, Point } from "geojson";
+import type { Feature, Point } from "geojson";
 import L from "leaflet";
-import type { SelectedParking } from "./ParkingBottomSheet";
+import type { ParkingFeatureProperties } from "@/types/parking";
 import { ParkingPinIcon } from "./ParkingPinIcon";
-
-type ParkingProps = {
-  name: string;
-  address: string;
-  city: string;
-  facility_type: string;
-  free: boolean;
-  total_capacity: number;
-  disabled_spaces: number;
-  ev_chargers: number;
-  bike_spaces: number;
-  fare_1h?: number | null;
-  fare_2h?: number | null;
-  fare_3h?: number | null;
-  fare_4h?: number | null;
-  fare_24h?: number | null;
-  subscription_resident?: number | null;
-  subscription_non_resident?: number | null;
-};
-
-type Availability = Record<string, { free_spaces: number | null }>;
+import { useParkings } from "@/hooks/use-parkings";
+import { useMapSelection } from "@/contexts/map-selection";
 
 function createParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
   let bubbleBg: string;
@@ -62,32 +42,33 @@ function createParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
   });
 }
 
-type Props = {
-  onParkingClick: (p: SelectedParking) => void;
-};
+function createClusterIcon(cluster: { getChildCount: () => number }) {
+  const count = cluster.getChildCount();
+  const size = count < 10 ? 34 : count < 20 ? 40 : 46;
+  return L.divIcon({
+    html: `<div style="
+      width:${size}px;height:${size}px;border-radius:50%;
+      background:rgba(20,20,20,0.88);border:2px solid #fff;
+      color:#fff;font-weight:700;font-size:${size < 40 ? 13 : 15}px;
+      display:flex;align-items:center;justify-content:center;
+      font-family:sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.4);
+    ">${count}</div>`,
+    className: "",
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
 
-export default function ParkingsLayer({ onParkingClick }: Props) {
-  const [parkings, setParkings] = useState<FeatureCollection | null>(null);
-  const [availability, setAvailability] = useState<Availability>({});
-
-  useEffect(() => {
-    Promise.all([
-      fetch("/api/parkings").then((r) => r.json()),
-      fetch("/api/availability").then((r) => r.json()),
-    ])
-      .then(([parkingsData, availabilityData]) => {
-        setParkings(parkingsData);
-        setAvailability(availabilityData);
-      })
-      .catch(console.error);
-  }, []);
+export default function ParkingsLayer() {
+  const { parkings, availability } = useParkings();
+  const { selectParking } = useMapSelection();
 
   if (!parkings) return null;
 
   return (
     <MarkerClusterGroup chunkedLoading disableClusteringAtZoom={14} iconCreateFunction={createClusterIcon}>
       {parkings.features.map((feature: Feature) => {
-        const p = feature.properties as ParkingProps;
+        const p = feature.properties as ParkingFeatureProperties;
         const id = feature.id as string;
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
@@ -100,7 +81,7 @@ export default function ParkingsLayer({ onParkingClick }: Props) {
             icon={icon}
             eventHandlers={{
               click: () =>
-                onParkingClick({
+                selectParking({
                   id,
                   name: p.name,
                   address: p.address,
@@ -127,21 +108,3 @@ export default function ParkingsLayer({ onParkingClick }: Props) {
     </MarkerClusterGroup>
   );
 }
-
-function createClusterIcon(cluster: { getChildCount: () => number }) {
-  const count = cluster.getChildCount();
-  const size = count < 10 ? 34 : count < 20 ? 40 : 46;
-  return L.divIcon({
-    html: `<div style="
-      width:${size}px;height:${size}px;border-radius:50%;
-      background:rgba(20,20,20,0.88);border:2px solid #fff;
-      color:#fff;font-weight:700;font-size:${size < 40 ? 13 : 15}px;
-      display:flex;align-items:center;justify-content:center;
-      font-family:sans-serif;box-shadow:0 1px 4px rgba(0,0,0,0.4);
-    ">${count}</div>`,
-    className: "",
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-  });
-}
-

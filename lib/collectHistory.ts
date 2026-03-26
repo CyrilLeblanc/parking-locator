@@ -1,4 +1,9 @@
 import { prisma } from "./prisma";
+import { COLLECT_SKIP_THRESHOLD_S } from "./constants";
+import {
+  getLastHistoryUpdate,
+  upsertParkingHistorySlot,
+} from "./repositories/parking.repository";
 
 const API_URL = "https://data.mobilites-m.fr/api/dyn/parking/json";
 
@@ -14,13 +19,10 @@ type ApiResponse = {
 export async function collectHistory(): Promise<void> {
   const now = new Date();
 
-  const [{ max_updated_at }] = await prisma.$queryRaw<
-    [{ max_updated_at: Date | null }]
-  >`SELECT MAX(updated_at) AS max_updated_at FROM parking_history`;
-
-  if (max_updated_at !== null) {
-    const secondsSinceLast = (now.getTime() - max_updated_at.getTime()) / 1000;
-    if (secondsSinceLast < 4 * 60) {
+  const lastUpdate = await getLastHistoryUpdate();
+  if (lastUpdate !== null) {
+    const secondsSinceLast = (now.getTime() - lastUpdate.getTime()) / 1000;
+    if (secondsSinceLast < COLLECT_SKIP_THRESHOLD_S) {
       console.log(
         `[collect-history] skipping — last record ${Math.round(secondsSinceLast)}s ago (<4 min)`
       );
@@ -49,16 +51,7 @@ export async function collectHistory(): Promise<void> {
     if (entry.nb_places_libres === null) { skipped++; continue; }
 
     const newValue = Math.max(0, Math.min(100, ((total - entry.nb_places_libres) / total) * 100));
-
-    await prisma.$executeRaw`
-      INSERT INTO parking_history (parking_id, day_of_week, slot, avg_occupancy, sample_count, updated_at)
-      VALUES (${id}, ${day_of_week}, ${slot}, ${newValue}, 1, NOW())
-      ON CONFLICT (parking_id, day_of_week, slot) DO UPDATE SET
-        avg_occupancy = (parking_history.avg_occupancy * parking_history.sample_count + ${newValue})
-                        / (parking_history.sample_count + 1),
-        sample_count  = parking_history.sample_count + 1,
-        updated_at    = NOW()
-    `;
+    await upsertParkingHistorySlot(id, day_of_week, slot, newValue);
     updated++;
   }
 

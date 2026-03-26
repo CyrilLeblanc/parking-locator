@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { XIcon } from "lucide-react";
 import {
   AreaChart,
@@ -19,49 +19,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsMobile } from "@/hooks/use-is-mobile";
+import { useMapSelection } from "@/contexts/map-selection";
+import { useParkingHistory } from "@/hooks/use-parking-history";
+import type { SelectedParking } from "@/types/parking";
 
 const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
-
-export type SelectedParking = {
-  id: string;
-  name: string;
-  address: string;
-  city: string;
-  facility_type: string;
-  free: boolean;
-  total_capacity: number;
-  disabled_spaces: number;
-  ev_chargers: number;
-  bike_spaces: number;
-  fare_1h?: number | null;
-  fare_2h?: number | null;
-  fare_3h?: number | null;
-  fare_4h?: number | null;
-  fare_24h?: number | null;
-  subscription_resident?: number | null;
-  subscription_non_resident?: number | null;
-  free_spaces: number | null;
-};
-
-type HistorySlot = {
-  slot: number;
-  time: string;
-  avg_occupancy: number | null;
-  sample_count: number;
-};
-
-type HistoryData = {
-  parking_id: string;
-  parking_name: string;
-  total_capacity: number;
-  day_of_week: number;
-  slots: HistorySlot[];
-};
-
-type Props = {
-  parking: SelectedParking | null;
-  onClose: () => void;
-};
 
 function formatFare(value: number): string {
   return value % 1 === 0 ? `${value} €` : `${value.toFixed(2).replace(".", ",")} €`;
@@ -70,18 +32,7 @@ function formatFare(value: number): string {
 function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClose: () => void }) {
   const today = (new Date().getDay() + 6) % 7;
   const [selectedDay, setSelectedDay] = useState(today);
-  const [history, setHistory] = useState<HistoryData | null>(null);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch(`/api/parkings/${parking.id}/history?day=${selectedDay}`, {
-      signal: controller.signal,
-    })
-      .then((r) => r.json())
-      .then((data: HistoryData) => setHistory(data))
-      .catch(() => {});
-    return () => controller.abort();
-  }, [parking.id, selectedDay]);
+  const { history, loading } = useParkingHistory(parking.id, selectedDay);
 
   const occupancyPct =
     parking.free_spaces !== null && parking.total_capacity > 0
@@ -102,10 +53,7 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
   if (parking.subscription_non_resident != null)
     fareRows.push({ label: "Abo. non-résident", value: parking.subscription_non_resident });
 
-  const freshHistory =
-    history?.parking_id === parking.id && history?.day_of_week === selectedDay ? history : null;
-  const isLoading = freshHistory === null;
-  const chartData = freshHistory?.slots;
+  const chartData = history?.slots;
 
   const nowSlot =
     selectedDay === today
@@ -113,10 +61,10 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
       : null;
 
   const hasLowConfidence =
-    freshHistory !== null &&
-    freshHistory.slots.some((s) => s.avg_occupancy !== null && s.sample_count < 20);
+    history !== null &&
+    history.slots.some((s) => s.avg_occupancy !== null && s.sample_count < 20);
 
-  const hasAnyData = freshHistory?.slots.some((s) => s.avg_occupancy !== null);
+  const hasAnyData = history?.slots.some((s) => s.avg_occupancy !== null);
 
   return (
     <div className="px-5 pb-8 pt-3">
@@ -128,7 +76,7 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
             {parking.address} · {parking.city}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {FACILITY_LABELS[parking.facility_type] ?? parking.facility_type} ·{" "}
+            {FACILITY_LABELS[parking.facility_type] ?? parking.facility_type} ·
             {parking.total_capacity} places
           </p>
         </div>
@@ -214,7 +162,7 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
       </div>
 
       <div className="h-[160px]">
-        {isLoading ? (
+        {loading ? (
           <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
             Chargement…
           </div>
@@ -276,7 +224,7 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
         )}
       </div>
 
-      {hasLowConfidence && !isLoading && hasAnyData && (
+      {hasLowConfidence && !loading && hasAnyData && (
         <div className="mt-2 text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
           Données limitées — moins de 20 relevés par créneau
         </div>
@@ -285,20 +233,21 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
   );
 }
 
-export default function ParkingBottomSheet({ parking, onClose }: Props) {
+export default function ParkingBottomSheet() {
+  const { selectedParking, clearSelection } = useMapSelection();
   const isMobile = useIsMobile();
-  const handleOpenChange = (open: boolean) => { if (!open) onClose(); };
+  const handleOpenChange = (open: boolean) => { if (!open) clearSelection(); };
 
   if (isMobile) {
     return (
-      <Drawer open={parking !== null} onOpenChange={handleOpenChange}>
+      <Drawer open={selectedParking !== null} onOpenChange={handleOpenChange}>
         <DrawerContent className="z-[2000]">
-          {parking && (
+          {selectedParking && (
             <>
-              <DrawerTitle className="sr-only">{parking.name}</DrawerTitle>
-              <DrawerDescription className="sr-only">{parking.address}</DrawerDescription>
+              <DrawerTitle className="sr-only">{selectedParking.name}</DrawerTitle>
+              <DrawerDescription className="sr-only">{selectedParking.address}</DrawerDescription>
               <ScrollArea className="overflow-y-auto">
-                <ParkingContent parking={parking} onClose={onClose} />
+                <ParkingContent parking={selectedParking} onClose={clearSelection} />
               </ScrollArea>
             </>
           )}
@@ -308,18 +257,18 @@ export default function ParkingBottomSheet({ parking, onClose }: Props) {
   }
 
   return (
-    <Sheet open={parking !== null} onOpenChange={handleOpenChange}>
+    <Sheet open={selectedParking !== null} onOpenChange={handleOpenChange}>
       <SheetContent
         side="right"
         showCloseButton={false}
         className="z-[2000] w-[400px] sm:max-w-[400px] p-0 flex flex-col gap-0"
       >
-        {parking && (
+        {selectedParking && (
           <>
-            <SheetTitle className="sr-only">{parking.name}</SheetTitle>
-            <SheetDescription className="sr-only">{parking.address}</SheetDescription>
+            <SheetTitle className="sr-only">{selectedParking.name}</SheetTitle>
+            <SheetDescription className="sr-only">{selectedParking.address}</SheetDescription>
             <ScrollArea className="flex-1 min-h-0">
-              <ParkingContent parking={parking} onClose={onClose} />
+              <ParkingContent parking={selectedParking} onClose={clearSelection} />
             </ScrollArea>
           </>
         )}

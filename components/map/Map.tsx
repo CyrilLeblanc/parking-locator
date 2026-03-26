@@ -1,0 +1,34 @@
+"use client";
+
+import { MapContainer, TileLayer } from "react-leaflet";
+import { MapSelectionProvider } from "@/contexts/map-selection";
+import ZonesLayer from "@/components/zone/ZonesLayer";
+import ParkingsLayer from "@/components/parking/ParkingsLayer";
+import ParkingLegend from "@/components/parking/ParkingLegend";
+import ZoneLegend from "@/components/zone/ZoneLegend";
+import ZoneBottomSheet from "@/components/zone/ZoneBottomSheet";
+import ParkingBottomSheet from "@/components/parking/ParkingBottomSheet";
+import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
+import "leaflet/dist/leaflet.css";
+
+export default function Map() {
+  return (
+    <MapSelectionProvider>
+      <div className="relative h-full w-full">
+        <MapContainer
+          center={MAP_CENTER}
+          zoom={MAP_ZOOM}
+          className="h-full w-full bg-[#3b373f]"
+        >
+          <TileLayer url={MAP_TILE_URL} />
+          <ZonesLayer />
+          <ParkingsLayer />
+          <ParkingLegend />
+        </MapContainer>
+        <ZoneLegend />
+        <ZoneBottomSheet />
+        <ParkingBottomSheet />
+      </div>
+    </MapSelectionProvider>
+  );
+}
