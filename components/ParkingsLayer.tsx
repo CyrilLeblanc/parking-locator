@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
 import { Marker } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { FeatureCollection, Feature, Point } from "geojson";
 import L from "leaflet";
 import type { SelectedParking } from "./ParkingBottomSheet";
+import { ParkingPinIcon } from "./ParkingPinIcon";
 
 type ParkingProps = {
   name: string;
@@ -28,54 +30,35 @@ type ParkingProps = {
 
 type Availability = Record<string, { free_spaces: number | null }>;
 
-function parkingIconSize(totalCapacity: number): number {
-  return Math.round(Math.max(24, Math.min(40, 18 + Math.sqrt(totalCapacity) * 1.1)));
-}
-
-/** Returns the SVG path for a pie slice starting from 12 o'clock, going clockwise by `pct` (0–1). */
-function pieSlicePath(cx: number, cy: number, r: number, pct: number): string {
-  const start = -Math.PI / 2;
-  const end = start + pct * 2 * Math.PI;
-  const x1 = cx + r * Math.cos(start);
-  const y1 = cy + r * Math.sin(start);
-  const x2 = cx + r * Math.cos(end);
-  const y2 = cy + r * Math.sin(end);
-  const largeArc = pct > 0.5 ? 1 : 0;
-  return `M ${cx} ${cy} L ${x1.toFixed(2)} ${y1.toFixed(2)} A ${r} ${r} 0 ${largeArc} 1 ${x2.toFixed(2)} ${y2.toFixed(2)} Z`;
-}
-
-function createParkingIcon(freeSpaces: number | null | undefined, totalCapacity: number): L.DivIcon {
-  const size = parkingIconSize(totalCapacity);
-  const cx = size / 2;
-  const r = cx - 1.5; // leave room for the border stroke
-
-  let inner: string;
+function createParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
+  let bubbleBg: string;
+  let bubbleText: string;
 
   if (freeSpaces === null || freeSpaces === undefined) {
-    inner = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="#7b8fa1"/>`;
+    bubbleBg = "#7b8fa1";
+    bubbleText = "–";
   } else if (freeSpaces === 0) {
-    inner = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="#f44336"/>`;
-  } else if (freeSpaces >= totalCapacity) {
-    inner = `<circle cx="${cx}" cy="${cx}" r="${r}" fill="#4caf50"/>`;
+    bubbleBg = "#f44336";
+    bubbleText = "0";
+  } else if (freeSpaces <= 9) {
+    bubbleBg = "#ff9800";
+    bubbleText = String(freeSpaces);
   } else {
-    const occupiedPct = (totalCapacity - freeSpaces) / totalCapacity;
-    const path = pieSlicePath(cx, cx, r, occupiedPct);
-    inner = `
-      <circle cx="${cx}" cy="${cx}" r="${r}" fill="#4caf50"/>
-      <path d="${path}" fill="#f44336"/>
-    `;
+    bubbleBg = "#4caf50";
+    bubbleText = freeSpaces > 99 ? "99+" : String(freeSpaces);
   }
 
-  const svg = `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
-    ${inner}
-    <circle cx="${cx}" cy="${cx}" r="${r}" fill="none" stroke="white" stroke-width="1.5"/>
-  </svg>`;
+  const bubbleFontSize = bubbleText.length > 2 ? "9px" : "11px";
+
+  const html = renderToStaticMarkup(
+    <ParkingPinIcon bubbleBg={bubbleBg} bubbleText={bubbleText} bubbleFontSize={bubbleFontSize} />
+  );
 
   return L.divIcon({
-    html: svg,
+    html,
     className: "",
-    iconSize: [size, size],
-    iconAnchor: [cx, cx],
+    iconSize: [36, 44],
+    iconAnchor: [14, 42],
   });
 }
 
@@ -108,7 +91,7 @@ export default function ParkingsLayer({ onParkingClick }: Props) {
         const id = feature.id as string;
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
-        const icon = createParkingIcon(avail?.free_spaces, p.total_capacity);
+        const icon = createParkingIcon(avail?.free_spaces);
 
         return (
           <Marker

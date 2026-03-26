@@ -1,5 +1,6 @@
 const AVAILABILITY_LEGEND = [
-  { color: "#4caf50", label: "Places disponibles" },
+  { color: "#4caf50", label: "≥10 places disponibles" },
+  { color: "#ff9800", label: "<10 places disponibles" },
   { color: "#f44336", label: "Complet" },
   { color: "#7b8fa1", label: "Pas de données" },
 ];
