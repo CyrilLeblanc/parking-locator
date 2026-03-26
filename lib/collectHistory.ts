@@ -13,6 +13,21 @@ type ApiResponse = {
 
 export async function collectHistory(): Promise<void> {
   const now = new Date();
+
+  const [{ max_updated_at }] = await prisma.$queryRaw<
+    [{ max_updated_at: Date | null }]
+  >`SELECT MAX(updated_at) AS max_updated_at FROM parking_history`;
+
+  if (max_updated_at !== null) {
+    const secondsSinceLast = (now.getTime() - max_updated_at.getTime()) / 1000;
+    if (secondsSinceLast < 4 * 60) {
+      console.log(
+        `[collect-history] skipping — last record ${Math.round(secondsSinceLast)}s ago (<4 min)`
+      );
+      return;
+    }
+  }
+
   const day_of_week = (now.getDay() + 6) % 7; // Monday = 0
   const slot = Math.floor((now.getHours() * 60 + now.getMinutes()) / 30); // 0–47
 
