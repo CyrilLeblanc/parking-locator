@@ -30,6 +30,7 @@ model Parking {
 
   fare           ParkingFare?
   availability   ParkingAvailability?
+  history        ParkingHistory[]
 
   @@map("parking")
 }
@@ -63,6 +64,20 @@ model ParkingAvailability {
   parking Parking @relation(fields: [parking_id], references: [id])
 
   @@map("parking_availability")
+}
+
+model ParkingHistory {
+  parking_id    String
+  day_of_week   Int
+  slot          Int
+  avg_occupancy Float
+  sample_count  Int
+  updated_at    DateTime @updatedAt
+
+  parking Parking @relation(fields: [parking_id], references: [id])
+
+  @@id([parking_id, day_of_week, slot])
+  @@map("parking_history")
 }
 
 model StreetParkingZone {

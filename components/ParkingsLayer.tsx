@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Marker, Popup } from "react-leaflet";
+import { Marker } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { FeatureCollection, Feature, Point } from "geojson";
 import L from "leaflet";
-import { FACILITY_LABELS } from "@/lib/parkingConfig";
+import type { SelectedParking } from "./ParkingBottomSheet";
 
 type ParkingProps = {
   name: string;
   address: string;
+  city: string;
   facility_type: string;
   free: boolean;
   total_capacity: number;
@@ -26,12 +27,6 @@ type ParkingProps = {
 };
 
 type Availability = Record<string, { free_spaces: number | null }>;
-
-function availabilityColor(freeSpaces: number | null | undefined): string {
-  if (freeSpaces === undefined || freeSpaces === null) return "#7b8fa1";
-  if (freeSpaces === 0) return "#f44336";
-  return "#4caf50";
-}
 
 function parkingIconSize(totalCapacity: number): number {
   return Math.round(Math.max(24, Math.min(40, 18 + Math.sqrt(totalCapacity) * 1.1)));
@@ -84,7 +79,11 @@ function createParkingIcon(freeSpaces: number | null | undefined, totalCapacity:
   });
 }
 
-export default function ParkingsLayer() {
+type Props = {
+  onParkingClick: (p: SelectedParking) => void;
+};
+
+export default function ParkingsLayer({ onParkingClick }: Props) {
   const [parkings, setParkings] = useState<FeatureCollection | null>(null);
   const [availability, setAvailability] = useState<Availability>({});
 
@@ -109,50 +108,37 @@ export default function ParkingsLayer() {
         const id = feature.id as string;
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
-        const fillColor = availabilityColor(avail?.free_spaces);
         const icon = createParkingIcon(avail?.free_spaces, p.total_capacity);
 
         return (
-          <Marker key={id} position={[lat, lng]} icon={icon}>
-            <Popup>
-              <div className="min-w-[200px] font-sans">
-                {avail !== undefined && avail.free_spaces !== null && (
-                  <>
-                    <AvailabilityBlock
-                      freeSpaces={avail.free_spaces}
-                      totalCapacity={p.total_capacity}
-                      color={fillColor}
-                    />
-                    <Divider />
-                  </>
-                )}
-                <div className="mb-1">
-                  <strong className="text-sm">{p.name}</strong>
-                  <div className="text-xs text-[#888] mt-0.5">{p.address}</div>
-                  <div className="text-xs text-[#555] mt-1">
-                    {FACILITY_LABELS[p.facility_type] ?? p.facility_type} · {p.total_capacity} places
-                  </div>
-                </div>
-                {(p.free || p.disabled_spaces > 0 || p.ev_chargers > 0 || p.bike_spaces > 0) && (
-                  <>
-                    <Divider />
-                    <div className="flex gap-1 flex-wrap">
-                      {p.free && <Badge label="Gratuit" color="#4caf50" />}
-                      {p.disabled_spaces > 0 && <Badge label="PMR" color="#2196f3" />}
-                      {p.ev_chargers > 0 && <Badge label="Borne EV" color="#ff9800" />}
-                      {p.bike_spaces > 0 && <Badge label="Vélo" color="#9c27b0" />}
-                    </div>
-                  </>
-                )}
-                {hasFares(p) && (
-                  <>
-                    <Divider />
-                    <FareTable p={p} />
-                  </>
-                )}
-              </div>
-            </Popup>
-          </Marker>
+          <Marker
+            key={id}
+            position={[lat, lng]}
+            icon={icon}
+            eventHandlers={{
+              click: () =>
+                onParkingClick({
+                  id,
+                  name: p.name,
+                  address: p.address,
+                  city: p.city,
+                  facility_type: p.facility_type,
+                  free: p.free,
+                  total_capacity: p.total_capacity,
+                  disabled_spaces: p.disabled_spaces,
+                  ev_chargers: p.ev_chargers,
+                  bike_spaces: p.bike_spaces,
+                  fare_1h: p.fare_1h,
+                  fare_2h: p.fare_2h,
+                  fare_3h: p.fare_3h,
+                  fare_4h: p.fare_4h,
+                  fare_24h: p.fare_24h,
+                  subscription_resident: p.subscription_resident,
+                  subscription_non_resident: p.subscription_non_resident,
+                  free_spaces: avail?.free_spaces ?? null,
+                }),
+            }}
+          />
         );
       })}
     </MarkerClusterGroup>
@@ -176,81 +162,3 @@ function createClusterIcon(cluster: { getChildCount: () => number }) {
   });
 }
 
-function AvailabilityBlock({
-  freeSpaces,
-  totalCapacity,
-  color,
-}: {
-  freeSpaces: number;
-  totalCapacity: number;
-  color: string;
-}) {
-  const pct = totalCapacity > 0 ? Math.round((freeSpaces / totalCapacity) * 100) : 0;
-  return (
-    <div className="mb-2">
-      <div className="font-bold text-[15px] mb-1.5" style={{ color }}>
-        {freeSpaces === 0 ? "Complet" : `${freeSpaces} places libres`}
-      </div>
-      <div className="flex items-center gap-2">
-        <div className="flex-1 h-1.5 rounded bg-[#e0e0e0] overflow-hidden">
-          <div
-            className="h-full rounded transition-[width] duration-300"
-            style={{ width: `${pct}%`, background: color }}
-          />
-        </div>
-        <span className="text-[11px] text-[#888] whitespace-nowrap">
-          {freeSpaces} / {totalCapacity}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function hasFares(p: ParkingProps): boolean {
-  return [p.fare_1h, p.fare_2h, p.fare_3h, p.fare_4h, p.fare_24h, p.subscription_resident, p.subscription_non_resident].some(
-    (v) => v != null
-  );
-}
-
-function formatFare(value: number): string {
-  return value % 1 === 0 ? `${value} €` : `${value.toFixed(2).replace(".", ",")} €`;
-}
-
-function FareTable({ p }: { p: ParkingProps }) {
-  const rows: { label: string; value: number }[] = [];
-  if (p.fare_1h != null) rows.push({ label: "1h", value: p.fare_1h });
-  if (p.fare_2h != null) rows.push({ label: "2h", value: p.fare_2h });
-  if (p.fare_3h != null) rows.push({ label: "3h", value: p.fare_3h });
-  if (p.fare_4h != null) rows.push({ label: "4h", value: p.fare_4h });
-  if (p.fare_24h != null) rows.push({ label: "24h", value: p.fare_24h });
-  if (p.subscription_resident != null) rows.push({ label: "Abo. résident", value: p.subscription_resident });
-  if (p.subscription_non_resident != null) rows.push({ label: "Abo. non-résident", value: p.subscription_non_resident });
-
-  return (
-    <table className="w-full text-xs border-collapse">
-      <tbody>
-        {rows.map(({ label, value }) => (
-          <tr key={label} className="border-b border-[#f0f0f0] last:border-0">
-            <td className="py-0.5 text-[#666]">{label}</td>
-            <td className="py-0.5 text-right font-medium text-[#333]">{formatFare(value)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-function Divider() {
-  return <hr className="border-0 border-t border-[#eee] my-2" />;
-}
-
-function Badge({ label, color }: { label: string; color: string }) {
-  return (
-    <span
-      className="text-white rounded px-1.5 py-px text-[11px] font-semibold"
-      style={{ background: color }}
-    >
-      {label}
-    </span>
-  );
-}

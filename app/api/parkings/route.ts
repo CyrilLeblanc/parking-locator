@@ -4,6 +4,7 @@ type ParkingRow = {
   id: string;
   name: string;
   address: string;
+  city: string;
   facility_type: string;
   free: boolean;
   total_capacity: number;
@@ -22,7 +23,7 @@ type ParkingRow = {
 
 export async function GET() {
   const rows = await prisma.$queryRaw<ParkingRow[]>`
-    SELECT p.id, p.name, p.address, p.facility_type, p.free, p.total_capacity,
+    SELECT p.id, p.name, p.address, p.city, p.facility_type, p.free, p.total_capacity,
            p.disabled_spaces, p.ev_chargers, p.bike_spaces,
            ST_AsGeoJSON(p.position) AS geojson,
            f.fare_1h, f.fare_2h, f.fare_3h, f.fare_4h, f.fare_24h,
@@ -40,6 +41,7 @@ export async function GET() {
       properties: {
         name: row.name,
         address: row.address,
+        city: row.city,
         facility_type: row.facility_type,
         free: row.free,
         total_capacity: row.total_capacity,
