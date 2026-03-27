@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { XIcon } from "lucide-react";
 import {
   AreaChart,
@@ -83,9 +83,12 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
             {FACILITY_LABELS[parking.facility_type] ?? parking.facility_type} ·
             {parking.total_capacity} places
           </p>
+          {parking.operator && (
+            <p className="text-xs text-muted-foreground mt-0.5">Opérateur : {parking.operator}</p>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0 mt-0.5">
-          <NavigateButton address={parking.address} city={parking.city} />
+          <NavigateButton lat={parking.lat} lng={parking.lng} />
           <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Fermer">
             <XIcon />
           </Button>
@@ -93,7 +96,7 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
       </div>
 
       {/* Availability */}
-      {parking.free_spaces !== null && (
+      {parking.source !== "osm" && parking.free_spaces !== null && (
         <div className="mb-3">
           <div className="font-bold text-[15px] mb-1.5" style={{ color: availColor }}>
             {parking.free_spaces === 0 ? "Complet" : `${parking.free_spaces} places libres`}
@@ -170,115 +173,137 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
         </div>
       )}
 
-      <Separator className="mb-4" />
-
-      {/* History */}
-      <p className="text-[11px] font-semibold uppercase text-muted-foreground mb-2">
-        Occupation typique
-      </p>
-
-      <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
-        {DAY_LABELS.map((label, i) => (
-          <Button
-            key={i}
-            variant={selectedDay === i ? "default" : "secondary"}
-            size="xs"
-            className={`shrink-0 rounded-full ${i === today && selectedDay !== i ? "ring-1 ring-border" : ""}`}
-            onClick={() => setSelectedDay(i)}
-          >
-            {label}
-          </Button>
-        ))}
-      </div>
-
-      <div className="h-[160px]">
-        {loading ? (
-          <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
-            Chargement…
-          </div>
-        ) : !hasAnyData ? (
-          <div className="h-full flex items-center justify-center text-sm text-muted-foreground text-center">
-            Pas encore de données
-            <br />
-            <span className="text-xs">Disponible après quelques jours de collecte</span>
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-              <defs>
-                <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f44336" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f44336" stopOpacity={0.05} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="time"
-                tick={{ fontSize: 10, fill: "#9e9e9e" }}
-                tickLine={false}
-                axisLine={false}
-                interval={3}
-              />
-              <YAxis
-                domain={[0, 100]}
-                tick={{ fontSize: 10, fill: "#9e9e9e" }}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(v) => `${v}%`}
-                ticks={[0, 50, 100]}
-              />
-              <Tooltip
-                formatter={(value: number) => [`${Math.round(value)}%`, "Occupation"]}
-                labelFormatter={(label) => label || ""}
-                contentStyle={{ fontSize: 12, borderRadius: 8 }}
-              />
-              {nowSlot !== null && (
-                <ReferenceLine
-                  x={`${Math.floor(nowSlot / 2).toString().padStart(2, "0")}:${nowSlot % 2 === 0 ? "00" : "30"}`}
-                  stroke="#1976d2"
-                  strokeDasharray="3 3"
-                  strokeWidth={1.5}
-                />
-              )}
-              <Area
-                type="monotone"
-                dataKey="avg_occupancy"
-                stroke="#f44336"
-                strokeWidth={2}
-                fill="url(#occupancyGradient)"
-                connectNulls={false}
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        )}
-      </div>
-
-      {hasLowConfidence && !loading && hasAnyData && (
-        <div className="mt-2 text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-          Données limitées — moins de 20 relevés par créneau
+      {parking.source === "osm" ? (
+        <div className="mt-1 text-[11px] text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+          Données OpenStreetMap · pas de données temps réel
         </div>
+      ) : (
+        <>
+          <Separator className="mb-4" />
+
+          {/* History */}
+          <p className="text-[11px] font-semibold uppercase text-muted-foreground mb-2">
+            Occupation typique
+          </p>
+
+          <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
+            {DAY_LABELS.map((label, i) => (
+              <Button
+                key={i}
+                variant={selectedDay === i ? "default" : "secondary"}
+                size="xs"
+                className={`shrink-0 rounded-full ${i === today && selectedDay !== i ? "ring-1 ring-border" : ""}`}
+                onClick={() => setSelectedDay(i)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+
+          <div className="h-[160px]">
+            {loading ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
+                Chargement…
+              </div>
+            ) : !hasAnyData ? (
+              <div className="h-full flex items-center justify-center text-sm text-muted-foreground text-center">
+                Pas encore de données
+                <br />
+                <span className="text-xs">Disponible après quelques jours de collecte</span>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                  <defs>
+                    <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#f44336" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#f44336" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 10, fill: "#9e9e9e" }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={3}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tick={{ fontSize: 10, fill: "#9e9e9e" }}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => `${v}%`}
+                    ticks={[0, 50, 100]}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [`${Math.round(value)}%`, "Occupation"]}
+                    labelFormatter={(label) => label || ""}
+                    contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                  />
+                  {nowSlot !== null && (
+                    <ReferenceLine
+                      x={`${Math.floor(nowSlot / 2).toString().padStart(2, "0")}:${nowSlot % 2 === 0 ? "00" : "30"}`}
+                      stroke="#1976d2"
+                      strokeDasharray="3 3"
+                      strokeWidth={1.5}
+                    />
+                  )}
+                  <Area
+                    type="monotone"
+                    dataKey="avg_occupancy"
+                    stroke="#f44336"
+                    strokeWidth={2}
+                    fill="url(#occupancyGradient)"
+                    connectNulls={false}
+                    dot={false}
+                    activeDot={{ r: 3 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {hasLowConfidence && !loading && hasAnyData && (
+            <div className="mt-2 text-[11px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+              Données limitées — moins de 20 relevés par créneau
+            </div>
+          )}
+        </>
       )}
     </div>
   );
 }
 
+const SNAP_PARTIAL = 0.5;
+const SNAP_FULL = 1;
+
 export default function ParkingBottomSheet() {
   const { selectedParking, clearSelection } = useMapSelection();
   const isMobile = useIsMobile();
+  const [snap, setSnap] = useState<number | string | null>(SNAP_PARTIAL);
   const handleOpenChange = (open: boolean) => { if (!open) clearSelection(); };
+
+  // Réinitialise le snap à chaque nouvelle sélection
+  const parkingId = selectedParking?.id;
+  React.useEffect(() => { setSnap(SNAP_PARTIAL); }, [parkingId]);
 
   if (isMobile) {
     return (
-      <Drawer open={selectedParking !== null} onOpenChange={handleOpenChange}>
-        <DrawerContent className="z-[2000]">
+      <Drawer
+        open={selectedParking !== null}
+        onOpenChange={handleOpenChange}
+        snapPoints={[SNAP_PARTIAL, SNAP_FULL]}
+        activeSnapPoint={snap}
+        setActiveSnapPoint={setSnap}
+      >
+        <DrawerContent className="z-[2000] max-h-[100dvh]">
           {selectedParking && (
             <>
               <DrawerTitle className="sr-only">{selectedParking.name}</DrawerTitle>
               <DrawerDescription className="sr-only">{selectedParking.address}</DrawerDescription>
-              <ScrollArea className="overflow-y-auto">
+              <div className={snap === SNAP_FULL ? "overflow-y-auto" : "overflow-hidden"}>
                 <ParkingContent parking={selectedParking} onClose={clearSelection} />
-              </ScrollArea>
+              </div>
             </>
           )}
         </DrawerContent>

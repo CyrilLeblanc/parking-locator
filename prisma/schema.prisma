@@ -25,8 +25,11 @@ model Parking {
   fare_url       String?
   updated_at     DateTime @updatedAt
 
-  // PostGIS point — insert/read via $queryRaw
+  source         String   @default("laMetro")
+  osm_id         BigInt?
+  // PostGIS geometries — insert/read via $queryRaw
   position       Unsupported("geometry(Point, 4326)")?
+  footprint      Unsupported("geometry(Geometry, 4326)")?
 
   fare           ParkingFare?
   availability   ParkingAvailability?

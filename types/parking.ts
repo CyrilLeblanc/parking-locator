@@ -10,7 +10,10 @@ export type ParkingRow = {
   ev_chargers: number;
   bike_spaces: number;
   max_height: number | null;
+  operator: string | null;
+  source: string;
   geojson: string;
+  footprint_geojson: string | null;
   fare_1h: number | null;
   fare_2h: number | null;
   fare_3h: number | null;
@@ -31,6 +34,9 @@ export type ParkingFeatureProperties = {
   ev_chargers: number;
   bike_spaces: number;
   max_height?: number | null;
+  operator?: string | null;
+  source: string;
+  footprint?: import("geojson").Geometry | null;
   fare_1h?: number | null;
   fare_2h?: number | null;
   fare_3h?: number | null;
@@ -42,6 +48,8 @@ export type ParkingFeatureProperties = {
 
 export type SelectedParking = {
   id: string;
+  lat: number;
+  lng: number;
   name: string;
   address: string;
   city: string;
@@ -51,6 +59,9 @@ export type SelectedParking = {
   disabled_spaces: number;
   ev_chargers: number;
   bike_spaces: number;
+  operator?: string | null;
+  source: string;
+  footprint?: import("geojson").Geometry | null;
   fare_1h?: number | null;
   fare_2h?: number | null;
   fare_3h?: number | null;

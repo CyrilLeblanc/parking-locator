@@ -1,48 +1,65 @@
 "use client";
 
 import { renderToStaticMarkup } from "react-dom/server";
-import { Marker, Tooltip } from "react-leaflet";
+import { Marker, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
-import type { Feature, Point } from "geojson";
+import type { Feature, Point, Polygon as GeoJSONPolygon, MultiPolygon, Geometry } from "geojson";
 import L from "leaflet";
 import type { ParkingFeatureProperties } from "@/types/parking";
 import { ParkingPinIcon } from "./ParkingPinIcon";
 import { useParkings } from "@/hooks/use-parkings";
 import { useMapSelection } from "@/contexts/map-selection";
 import { useFilters } from "@/contexts/filters";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { matchesParkingFilters } from "@/lib/parkingFilters";
 import { estimateParkingFare, formatFareValue } from "@/lib/fareEstimation";
 
-function createParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
-  let bubbleBg: string;
-  let bubbleText: string;
-
-  if (freeSpaces === null || freeSpaces === undefined) {
-    bubbleBg = "#7b8fa1";
-    bubbleText = "–";
-  } else if (freeSpaces === 0) {
-    bubbleBg = "#f44336";
-    bubbleText = "0";
-  } else if (freeSpaces <= 9) {
-    bubbleBg = "#ff9800";
-    bubbleText = String(freeSpaces);
-  } else {
-    bubbleBg = "#4caf50";
-    bubbleText = freeSpaces > 99 ? "99+" : String(freeSpaces);
-  }
-
+function makeDivIcon(bubbleBg: string, bubbleText: string, pinColor: string): L.DivIcon {
   const bubbleFontSize = bubbleText.length > 2 ? "9px" : "11px";
-
-  const html = renderToStaticMarkup(
-    <ParkingPinIcon bubbleBg={bubbleBg} bubbleText={bubbleText} bubbleFontSize={bubbleFontSize} />
-  );
-
   return L.divIcon({
-    html,
+    html: renderToStaticMarkup(
+      <ParkingPinIcon bubbleBg={bubbleBg} bubbleText={bubbleText} bubbleFontSize={bubbleFontSize} pinColor={pinColor} />
+    ),
     className: "",
     iconSize: [36, 44],
     iconAnchor: [14, 42],
   });
+}
+
+// Icône partagée pour tous les parkings OSM : pin gris, pas de bulle
+const OSM_ICON = L.divIcon({
+  html: renderToStaticMarkup(<ParkingPinIcon pinColor="#78909c" />),
+  className: "",
+  iconSize: [28, 36],
+  iconAnchor: [14, 34],
+});
+
+// Cache pour les icônes LaMetro (4 états de disponibilité, sans le texte variable 1-9)
+const ICON_CACHE = new Map<string, L.DivIcon>();
+
+function createParkingIcon(freeSpaces: number | null | undefined, source: string): L.DivIcon {
+  if (source === "osm") return OSM_ICON;
+
+  const pinColor = "#1565c0";
+
+  if (freeSpaces === null || freeSpaces === undefined) {
+    const key = "unknown";
+    if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#7b8fa1", "–", pinColor));
+    return ICON_CACHE.get(key)!;
+  }
+  if (freeSpaces === 0) {
+    const key = "full";
+    if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#f44336", "0", pinColor));
+    return ICON_CACHE.get(key)!;
+  }
+
+  // 1-9 : texte variable, pas de cache possible
+  if (freeSpaces <= 9) return makeDivIcon("#ff9800", String(freeSpaces), pinColor);
+
+  const text = freeSpaces > 99 ? "99+" : String(freeSpaces);
+  const key = `green-${text}`;
+  if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#4caf50", text, pinColor));
+  return ICON_CACHE.get(key)!;
 }
 
 function createClusterIcon(cluster: { getChildCount: () => number }) {
@@ -62,7 +79,26 @@ function createClusterIcon(cluster: { getChildCount: () => number }) {
   });
 }
 
+const SHEET_WIDTH = 400;
+const DRAWER_SNAP = 0.5;
+const FOOTPRINT_MAX_ZOOM = 17;
+
+function footprintToBounds(footprint: Geometry): L.LatLngBounds | null {
+  let coords: number[][];
+  if (footprint.type === "Polygon") {
+    coords = (footprint as GeoJSONPolygon).coordinates[0];
+  } else if (footprint.type === "MultiPolygon") {
+    coords = (footprint as MultiPolygon).coordinates.flatMap((poly) => poly[0]);
+  } else {
+    return null;
+  }
+  const latLngs = coords.map(([lng, lat]) => L.latLng(lat, lng));
+  return L.latLngBounds(latLngs);
+}
+
 export default function ParkingsLayer() {
+  const map = useMap();
+  const isMobile = useIsMobile();
   const { parkings, availability } = useParkings();
   const { selectParking } = useMapSelection();
   const { estimationDuration, activeFilters, activeFilterCount } = useFilters();
@@ -76,7 +112,7 @@ export default function ParkingsLayer() {
         const id = feature.id as string;
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
-        const icon = createParkingIcon(avail?.free_spaces);
+        const icon = createParkingIcon(avail?.free_spaces, p.source);
         const matches = activeFilterCount === 0 || matchesParkingFilters(p, activeFilters);
 
         let priceLabel: string | null = null;
@@ -96,9 +132,14 @@ export default function ParkingsLayer() {
             icon={icon}
             opacity={matches ? 1 : 0.2}
             eventHandlers={{
-              click: () =>
+              click: (e) => {
+                // Empêche la propagation vers les layers dessous (ZonesLayer)
+                // qui appellerait selectZone et effacerait la sélection du parking
+                L.DomEvent.stopPropagation(e);
                 selectParking({
                   id,
+                  lat,
+                  lng,
                   name: p.name,
                   address: p.address,
                   city: p.city,
@@ -108,6 +149,9 @@ export default function ParkingsLayer() {
                   disabled_spaces: p.disabled_spaces,
                   ev_chargers: p.ev_chargers,
                   bike_spaces: p.bike_spaces,
+                  operator: p.operator ?? null,
+                  source: p.source,
+                  footprint: p.footprint ?? null,
                   fare_1h: p.fare_1h,
                   fare_2h: p.fare_2h,
                   fare_3h: p.fare_3h,
@@ -116,7 +160,33 @@ export default function ParkingsLayer() {
                   subscription_resident: p.subscription_resident,
                   subscription_non_resident: p.subscription_non_resident,
                   free_spaces: avail?.free_spaces ?? null,
-                }),
+                });
+                const { x: mapW, y: mapH } = map.getSize();
+                const bottomRight = isMobile
+                  ? L.point(0, mapH * DRAWER_SNAP)
+                  : L.point(SHEET_WIDTH, 0);
+
+                if (p.footprint) {
+                  const bounds = footprintToBounds(p.footprint);
+                  if (bounds) {
+                    map.fitBounds(bounds, {
+                      paddingBottomRight: bottomRight,
+                      maxZoom: FOOTPRINT_MAX_ZOOM,
+                      animate: true,
+                    });
+                    return;
+                  }
+                }
+
+                // Fallback sans footprint : pan vers l'espace visible
+                const targetX = isMobile ? mapW / 2 : (mapW - SHEET_WIDTH) / 2;
+                const targetY = isMobile ? (mapH * (1 - DRAWER_SNAP)) / 2 : mapH / 2;
+                const currentPt = map.latLngToContainerPoint([lat, lng]);
+                map.panBy(
+                  [currentPt.x - targetX, currentPt.y - targetY],
+                  { animate: true, duration: 0.3 }
+                );
+              },
             }}
           >
             {priceLabel !== null && (

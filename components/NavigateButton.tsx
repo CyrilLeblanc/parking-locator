@@ -4,13 +4,12 @@ import { Navigation } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface NavigateButtonProps {
-  address: string;
-  city: string;
+  lat: number;
+  lng: number;
 }
 
-export function NavigateButton({ address, city }: NavigateButtonProps) {
-  const destination = encodeURIComponent(`${address}, ${city}`);
-  const href = `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+export function NavigateButton({ lat, lng }: NavigateButtonProps) {
+  const href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
 
   return (
     <Button variant="ghost" size="icon-sm" aria-label="Y aller" asChild>

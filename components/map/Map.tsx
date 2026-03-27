@@ -5,6 +5,7 @@ import { MapSelectionProvider } from "@/contexts/map-selection";
 import { FiltersProvider } from "@/contexts/filters";
 import ZonesLayer from "@/components/zone/ZonesLayer";
 import ParkingsLayer from "@/components/parking/ParkingsLayer";
+import ParkingFootprintLayer from "@/components/parking/ParkingFootprintLayer";
 import ZoneLegend from "@/components/zone/ZoneLegend";
 import ZoneBottomSheet from "@/components/zone/ZoneBottomSheet";
 import ParkingBottomSheet from "@/components/parking/ParkingBottomSheet";
@@ -28,6 +29,7 @@ export default function Map() {
             <TileLayer url={MAP_TILE_URL} />
             <ZonesLayer />
             <ParkingsLayer />
+            <ParkingFootprintLayer />
             </MapContainer>
           <FilterBar>
             <DurationFilter />

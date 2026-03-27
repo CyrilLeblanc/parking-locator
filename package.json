@@ -12,6 +12,7 @@
     "import:parkings": "tsx --env-file=.env.local scripts/import-parkings.ts",
     "import:fares": "tsx --env-file=.env.local scripts/import-fares.ts",
     "import:zone-fare-brackets": "tsx --env-file=.env.local scripts/import-zone-fare-brackets.ts",
+    "import:osm-parkings": "tsx --env-file=.env.local scripts/import-osm-parkings.ts",
     "import": "npm run import:zones && npm run import:parkings && npm run import:fares"
   },
   "dependencies": {
