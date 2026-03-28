@@ -39,11 +39,11 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
     parking.free_spaces === null ? "#7b8fa1" : parking.free_spaces === 0 ? "#f44336" : "#4caf50";
 
   const fareRows: { label: string; value: number; durationMin?: number }[] = [];
-  if (parking.fare_1h != null) fareRows.push({ label: "1h", value: parking.fare_1h, durationMin: 60 });
-  if (parking.fare_2h != null) fareRows.push({ label: "2h", value: parking.fare_2h, durationMin: 120 });
-  if (parking.fare_3h != null) fareRows.push({ label: "3h", value: parking.fare_3h, durationMin: 180 });
-  if (parking.fare_4h != null) fareRows.push({ label: "4h", value: parking.fare_4h, durationMin: 240 });
-  if (parking.fare_24h != null) fareRows.push({ label: "24h", value: parking.fare_24h, durationMin: 1440 });
+  if (parking.fare_1h != null) fareRows.push({ label: "jusqu'à 1h", value: parking.fare_1h, durationMin: 60 });
+  if (parking.fare_2h != null) fareRows.push({ label: "jusqu'à 2h", value: parking.fare_2h, durationMin: 120 });
+  if (parking.fare_3h != null) fareRows.push({ label: "jusqu'à 3h", value: parking.fare_3h, durationMin: 180 });
+  if (parking.fare_4h != null) fareRows.push({ label: "jusqu'à 4h", value: parking.fare_4h, durationMin: 240 });
+  if (parking.fare_24h != null) fareRows.push({ label: "jusqu'à 24h", value: parking.fare_24h, durationMin: 1440 });
   if (parking.subscription_resident != null)
     fareRows.push({ label: "Abo. résident", value: parking.subscription_resident });
   if (parking.subscription_non_resident != null)

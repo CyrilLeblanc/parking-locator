@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { GeoJSON } from "react-leaflet";
 import type { Feature } from "geojson";
 import type { Layer, PathOptions } from "leaflet";
@@ -23,7 +23,9 @@ export default function ZonesLayer() {
   const { zones } = useZones();
   const { selectZone } = useMapSelection();
   const selectZoneRef = useRef(selectZone);
-  selectZoneRef.current = selectZone;
+  useEffect(() => {
+    selectZoneRef.current = selectZone;
+  });
 
   // Stable callback — uses ref so closure never goes stale
   const onEachFeature = useCallback((feature: Feature, layer: Layer) => {

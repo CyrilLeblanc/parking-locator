@@ -32,7 +32,6 @@ model Parking {
   footprint      Unsupported("geometry(Geometry, 4326)")?
 
   fare           ParkingFare?
-  availability   ParkingAvailability?
   history        ParkingHistory[]
 
   @@map("parking")
@@ -54,19 +53,6 @@ model ParkingFare {
   parking Parking @relation(fields: [parking_id], references: [id])
 
   @@map("parking_fare")
-}
-
-model ParkingAvailability {
-  parking_id           String   @id
-  free_spaces          Int?
-  free_facility_spaces Int?
-  free_pr_spaces       Int?
-  status               String
-  fetched_at           DateTime
-
-  parking Parking @relation(fields: [parking_id], references: [id])
-
-  @@map("parking_availability")
 }
 
 model ParkingHistory {

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Marker, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -26,45 +27,6 @@ function makeDivIcon(bubbleBg: string, bubbleText: string, pinColor: string): L.
   });
 }
 
-// Icône partagée pour tous les parkings OSM : pin gris, pas de bulle
-const OSM_ICON = L.divIcon({
-  html: renderToStaticMarkup(<ParkingPinIcon pinColor="#78909c" />),
-  className: "",
-  iconSize: [28, 36],
-  iconAnchor: [14, 34],
-});
-
-// Cache pour les icônes LaMetro — couvre tous les états : unknown, full, 1-9 (orange), 10-99, 99+
-const ICON_CACHE = new Map<string, L.DivIcon>();
-
-function createParkingIcon(freeSpaces: number | null | undefined, source: string): L.DivIcon {
-  if (source === "osm") return OSM_ICON;
-
-  const pinColor = "#1565c0";
-
-  if (freeSpaces === null || freeSpaces === undefined) {
-    const key = "unknown";
-    if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#7b8fa1", "–", pinColor));
-    return ICON_CACHE.get(key)!;
-  }
-  if (freeSpaces === 0) {
-    const key = "full";
-    if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#f44336", "0", pinColor));
-    return ICON_CACHE.get(key)!;
-  }
-
-  // 1-9 : 9 valeurs possibles, toutes cachées
-  if (freeSpaces <= 9) {
-    const key = `orange-${freeSpaces}`;
-    if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#ff9800", String(freeSpaces), pinColor));
-    return ICON_CACHE.get(key)!;
-  }
-
-  const text = freeSpaces > 99 ? "99+" : String(freeSpaces);
-  const key = `green-${text}`;
-  if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#4caf50", text, pinColor));
-  return ICON_CACHE.get(key)!;
-}
 
 function createClusterIcon(cluster: { getChildCount: () => number }) {
   const count = cluster.getChildCount();
@@ -103,6 +65,44 @@ function footprintToBounds(footprint: Geometry): L.LatLngBounds | null {
 export default function ParkingsLayer() {
   const map = useMap();
   const isMobile = useIsMobile();
+  const iconCache = useRef(new Map<string, L.DivIcon>());
+  const osmIcon = useRef<L.DivIcon | null>(null);
+
+  function getParkingIcon(freeSpaces: number | null | undefined, source: string): L.DivIcon {
+    if (source === "osm") {
+      osmIcon.current ??= L.divIcon({
+        html: renderToStaticMarkup(<ParkingPinIcon pinColor="#78909c" />),
+        className: "",
+        iconSize: [28, 36],
+        iconAnchor: [14, 34],
+      });
+      return osmIcon.current;
+    }
+
+    const pinColor = "#1565c0";
+    const cache = iconCache.current;
+
+    if (freeSpaces === null || freeSpaces === undefined) {
+      const key = "unknown";
+      if (!cache.has(key)) cache.set(key, makeDivIcon("#7b8fa1", "–", pinColor));
+      return cache.get(key)!;
+    }
+    if (freeSpaces === 0) {
+      const key = "full";
+      if (!cache.has(key)) cache.set(key, makeDivIcon("#f44336", "0", pinColor));
+      return cache.get(key)!;
+    }
+    if (freeSpaces <= 9) {
+      const key = `orange-${freeSpaces}`;
+      if (!cache.has(key)) cache.set(key, makeDivIcon("#ff9800", String(freeSpaces), pinColor));
+      return cache.get(key)!;
+    }
+
+    const text = freeSpaces > 99 ? "99+" : String(freeSpaces);
+    const key = `green-${text}`;
+    if (!cache.has(key)) cache.set(key, makeDivIcon("#4caf50", text, pinColor));
+    return cache.get(key)!;
+  }
   const { parkings, availability } = useParkings();
   const { selectParking } = useMapSelection();
   const { estimationDuration, activeFilters, activeFilterCount } = useFilters();
@@ -116,7 +116,7 @@ export default function ParkingsLayer() {
         const id = feature.id as string;
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
-        const icon = createParkingIcon(avail?.free_spaces, p.source);
+        const icon = getParkingIcon(avail?.free_spaces, p.source);
         const matches = activeFilterCount === 0 || matchesParkingFilters(p, activeFilters);
 
         let priceLabel: string | null = null;

@@ -9,36 +9,36 @@ type UseParkingHistoryResult = {
   error: boolean;
 };
 
+type FetchResult = {
+  history: HistoryData | null;
+  error: boolean;
+  forId: string;
+  forDay: number;
+};
+
 export function useParkingHistory(parkingId: string | null, day: number): UseParkingHistoryResult {
-  const [history, setHistory] = useState<HistoryData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [result, setResult] = useState<FetchResult | null>(null);
 
   useEffect(() => {
-    if (parkingId === null) {
-      setHistory(null);
-      setLoading(false);
-      setError(false);
-      return;
-    }
-    setHistory(null);
-    setLoading(true);
-    setError(false);
+    if (parkingId === null) return;
     const controller = new AbortController();
     fetch(`/api/parkings/${parkingId}/history?day=${day}`, {
       signal: controller.signal,
     })
       .then((r) => r.json())
-      .then((data: HistoryData) => {
-        setHistory(data);
-        setLoading(false);
-      })
+      .then((data: HistoryData) =>
+        setResult({ history: data, error: false, forId: parkingId, forDay: day })
+      )
       .catch((err) => {
-        if ((err as Error).name !== "AbortError") setError(true);
-        setLoading(false);
+        if ((err as Error).name !== "AbortError")
+          setResult({ history: null, error: true, forId: parkingId, forDay: day });
       });
     return () => controller.abort();
   }, [parkingId, day]);
 
-  return { history, loading, error };
+  if (parkingId === null) return { history: null, loading: false, error: false };
+
+  const isStale = result === null || result.forId !== parkingId || result.forDay !== day;
+  if (isStale) return { history: null, loading: true, error: false };
+  return { history: result.history, loading: false, error: result.error };
 }
