@@ -15,6 +15,7 @@ import DurationFilter from "@/components/map/filters/DurationFilter";
 import ParkingFilters from "@/components/map/filters/ParkingFilters";
 import UserLocationLayer from "@/components/map/UserLocationLayer";
 import LocateButton from "@/components/map/LocateButton";
+import MapHashSync from "@/components/map/MapHashSync";
 import { GeolocationProvider } from "@/contexts/geolocation";
 import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
 import "leaflet/dist/leaflet.css";
@@ -37,6 +38,7 @@ export default function Map() {
               <ParkingsLayer />
               <ParkingFootprintLayer />
               <UserLocationLayer />
+              <MapHashSync />
             </MapContainer>
             <FilterBar>
               <DurationFilter />
