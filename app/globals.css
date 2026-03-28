@@ -127,6 +127,23 @@ body {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes user-location-pulse {
+  0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0.8; }
+  100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
+}
+
+.user-location-pulse {
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(41, 121, 255, 0.35);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: user-location-pulse 2s ease-out infinite;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

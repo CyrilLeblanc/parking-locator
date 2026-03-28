@@ -12,6 +12,9 @@ import ParkingBottomSheet from "@/components/parking/ParkingBottomSheet";
 import FilterBar from "@/components/map/FilterBar";
 import DurationFilter from "@/components/map/filters/DurationFilter";
 import ParkingFilters from "@/components/map/filters/ParkingFilters";
+import UserLocationLayer from "@/components/map/UserLocationLayer";
+import LocateButton from "@/components/map/LocateButton";
+import { GeolocationProvider } from "@/contexts/geolocation";
 import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
 import "leaflet/dist/leaflet.css";
 
@@ -19,26 +22,30 @@ export default function Map() {
   return (
     <FiltersProvider>
       <MapSelectionProvider>
-        <div className="relative h-full w-full">
-          <MapContainer
-            center={MAP_CENTER}
-            zoom={MAP_ZOOM}
-            zoomControl={false}
-            className="h-full w-full bg-[#3b373f]"
-          >
-            <TileLayer url={MAP_TILE_URL} />
-            <ZonesLayer />
-            <ParkingsLayer />
-            <ParkingFootprintLayer />
+        <GeolocationProvider>
+          <div className="relative h-full w-full">
+            <MapContainer
+              center={MAP_CENTER}
+              zoom={MAP_ZOOM}
+              zoomControl={false}
+              className="h-full w-full bg-[#3b373f]"
+            >
+              <TileLayer url={MAP_TILE_URL} />
+              <ZonesLayer />
+              <ParkingsLayer />
+              <ParkingFootprintLayer />
+              <UserLocationLayer />
             </MapContainer>
-          <FilterBar>
-            <DurationFilter />
-            <ParkingFilters />
-          </FilterBar>
-          <ZoneLegend />
-          <ZoneBottomSheet />
-          <ParkingBottomSheet />
-        </div>
+            <FilterBar>
+              <DurationFilter />
+              <ParkingFilters />
+            </FilterBar>
+            <ZoneLegend />
+            <ZoneBottomSheet />
+            <ParkingBottomSheet />
+            <LocateButton />
+          </div>
+        </GeolocationProvider>
       </MapSelectionProvider>
     </FiltersProvider>
   );
