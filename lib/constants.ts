@@ -6,3 +6,8 @@ export const HISTORY_SLOT_COUNT = 48; // 48 × 30 min = 24h
 
 export const COLLECT_INTERVAL_MS = 5 * 60 * 1000;
 export const COLLECT_SKIP_THRESHOLD_S = 4 * 60;
+
+/** Returns today's day index using the Mon=0 … Sun=6 convention (not JS's Sun=0). */
+export function todayDayOfWeek(): number {
+  return (new Date().getDay() + 6) % 7;
+}

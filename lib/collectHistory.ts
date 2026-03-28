@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { COLLECT_SKIP_THRESHOLD_S } from "./constants";
+import { COLLECT_SKIP_THRESHOLD_S, todayDayOfWeek } from "./constants";
 import {
   getLastHistoryUpdate,
   upsertParkingHistorySlot,
@@ -30,7 +30,7 @@ export async function collectHistory(): Promise<void> {
     }
   }
 
-  const day_of_week = (now.getDay() + 6) % 7; // Monday = 0
+  const day_of_week = todayDayOfWeek(); // Monday = 0
   const slot = Math.floor((now.getHours() * 60 + now.getMinutes()) / 30); // 0–47
 
   const parkings = await prisma.parking.findMany({

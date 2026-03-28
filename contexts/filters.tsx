@@ -55,8 +55,13 @@ export function FiltersProvider({ children }: { children: React.ReactNode }) {
     );
   }, [activeFilters]);
 
+  const value = useMemo(
+    () => ({ estimationDuration, setEstimationDuration, activeFilters, setFilter, clearFilters, activeFilterCount }),
+    [estimationDuration, setEstimationDuration, activeFilters, setFilter, clearFilters, activeFilterCount]
+  );
+
   return (
-    <FiltersContext.Provider value={{ estimationDuration, setEstimationDuration, activeFilters, setFilter, clearFilters, activeFilterCount }}>
+    <FiltersContext.Provider value={value}>
       {children}
     </FiltersContext.Provider>
   );

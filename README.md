@@ -202,7 +202,7 @@ instrumentation.ts          # Starts background history collector
 
 ## Contributing
 
-Contributions are welcome. Open an issue to discuss a bug or feature before submitting a pull request.
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for setup, conventions, and guidelines.
 
 ## License
 

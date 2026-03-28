@@ -34,7 +34,7 @@ const OSM_ICON = L.divIcon({
   iconAnchor: [14, 34],
 });
 
-// Cache pour les icônes LaMetro (4 états de disponibilité, sans le texte variable 1-9)
+// Cache pour les icônes LaMetro — couvre tous les états : unknown, full, 1-9 (orange), 10-99, 99+
 const ICON_CACHE = new Map<string, L.DivIcon>();
 
 function createParkingIcon(freeSpaces: number | null | undefined, source: string): L.DivIcon {
@@ -53,8 +53,12 @@ function createParkingIcon(freeSpaces: number | null | undefined, source: string
     return ICON_CACHE.get(key)!;
   }
 
-  // 1-9 : texte variable, pas de cache possible
-  if (freeSpaces <= 9) return makeDivIcon("#ff9800", String(freeSpaces), pinColor);
+  // 1-9 : 9 valeurs possibles, toutes cachées
+  if (freeSpaces <= 9) {
+    const key = `orange-${freeSpaces}`;
+    if (!ICON_CACHE.has(key)) ICON_CACHE.set(key, makeDivIcon("#ff9800", String(freeSpaces), pinColor));
+    return ICON_CACHE.get(key)!;
+  }
 
   const text = freeSpaces > 99 ? "99+" : String(freeSpaces);
   const key = `green-${text}`;

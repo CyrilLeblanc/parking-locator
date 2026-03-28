@@ -7,6 +7,6 @@ export async function GET() {
     const data = await fetchAvailability();
     return Response.json(data);
   } catch {
-    return Response.json({}, { status: 502 });
+    return Response.json({ error: "Service unavailable" }, { status: 502 });
   }
 }
