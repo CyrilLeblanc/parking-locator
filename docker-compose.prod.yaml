@@ -24,22 +24,10 @@ services:
       - "3000:3000"
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@db:5432/parking_locator
-
-  importer:
-    build:
-      context: .
-      target: builder
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@db:5432/parking_locator
-    command: >
-      sh -c "npx tsx scripts/import-zones.ts &&
-             npx tsx scripts/import-parkings.ts &&
-             npx tsx scripts/import-fares.ts"
-    profiles:
-      - tools
+      NODE_ENV: production
+    volumes:
+      - osm_data:/app/docker/osm
 
 volumes:
   postgres_data:
+  osm_data:

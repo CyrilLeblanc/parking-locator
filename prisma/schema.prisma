@@ -17,9 +17,15 @@ model Parking {
   total_capacity      Int
   estimated_capacity  Int?
   disabled_spaces     Int
-  ev_chargers    Int
-  bike_spaces    Int
-  max_height     Float?
+  ev_chargers        Int
+  bike_spaces        Int
+  moto_spaces        Int      @default(0)
+  moto_ev_spaces     Int      @default(0)
+  carsharing_spaces  Int      @default(0)
+  carpool_spaces     Int      @default(0)
+  max_height         Float?
+  users_type         String?
+  info               String?
   operator       String?
   siret          String?
   info_url       String?

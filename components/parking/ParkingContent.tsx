@@ -93,6 +93,9 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
           {parking.operator && (
             <p className="text-xs text-muted-foreground mt-0.5">Opérateur : {parking.operator}</p>
           )}
+          {parking.max_height != null && (
+            <p className="text-xs text-muted-foreground mt-0.5">Hauteur max : {parking.max_height}m</p>
+          )}
         </div>
         <div className="flex items-center gap-1 shrink-0 mt-0.5">
           <NavigateButton lat={parking.lat} lng={parking.lng} />
@@ -123,7 +126,7 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
       )}
 
       {/* Badges */}
-      {(parking.free || parking.disabled_spaces > 0 || parking.ev_chargers > 0 || parking.bike_spaces > 0) && (
+      {(parking.free || parking.disabled_spaces > 0 || parking.ev_chargers > 0 || parking.bike_spaces > 0 || parking.moto_spaces > 0 || parking.moto_ev_spaces > 0 || parking.carsharing_spaces > 0 || parking.carpool_spaces > 0) && (
         <div className="flex flex-wrap gap-1.5 mb-3">
           {parking.free && (
             <Badge className="bg-[#4caf50] text-white border-transparent">Gratuit</Badge>
@@ -136,6 +139,18 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
           )}
           {parking.bike_spaces > 0 && (
             <Badge className="bg-[#9c27b0] text-white border-transparent">Vélo</Badge>
+          )}
+          {parking.moto_spaces > 0 && (
+            <Badge variant="outline">Moto</Badge>
+          )}
+          {parking.moto_ev_spaces > 0 && (
+            <Badge variant="outline">Moto EV</Badge>
+          )}
+          {parking.carsharing_spaces > 0 && (
+            <Badge variant="outline">Autopartage</Badge>
+          )}
+          {parking.carpool_spaces > 0 && (
+            <Badge variant="outline">Covoiturage</Badge>
           )}
         </div>
       )}
@@ -172,6 +187,23 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
             </tbody>
           </table>
         </div>
+      )}
+
+      {parking.info && (
+        <div className="mb-3 text-xs text-muted-foreground bg-muted/40 rounded-lg px-3 py-2">
+          {parking.info}
+        </div>
+      )}
+
+      {parking.info_url && (
+        <a
+          href={parking.info_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block mb-3 text-xs text-primary underline underline-offset-2"
+        >
+          Site de l&apos;opérateur →
+        </a>
       )}
 
       {parking.source === "osm" ? (

@@ -5,7 +5,7 @@ export const MAP_ZOOM = 15;
 export const MAP_TILE_URL = "https://data.mobilites-m.fr/carte-dark/{z}/{x}/{y}.png";
 
 /** Zoom à partir duquel les emprises OSM sont affichées et les markers OSM masqués. */
-export const OSM_FOOTPRINTS_MIN_ZOOM = 16;
+export const OSM_FOOTPRINTS_MIN_ZOOM = 14;
 
 export const HISTORY_SLOT_COUNT = 48; // 48 × 30 min = 24h
 
