@@ -8,11 +8,16 @@ type UseParkingHistoryResult = {
   loading: boolean;
 };
 
-export function useParkingHistory(parkingId: string, day: number): UseParkingHistoryResult {
+export function useParkingHistory(parkingId: string | null, day: number): UseParkingHistoryResult {
   const [history, setHistory] = useState<HistoryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (parkingId === null) {
+      setHistory(null);
+      setLoading(false);
+      return;
+    }
     setHistory(null);
     setLoading(true);
     const controller = new AbortController();

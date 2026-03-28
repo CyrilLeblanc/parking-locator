@@ -36,7 +36,7 @@ function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClos
   const today = (new Date().getDay() + 6) % 7;
   const [selectedDay, setSelectedDay] = useState(today);
   const { estimationDuration } = useFilters();
-  const { history, loading } = useParkingHistory(parking.id, selectedDay);
+  const { history, loading } = useParkingHistory(parking.source === "osm" ? null : parking.id, selectedDay);
 
   const occupancyPct =
     parking.free_spaces !== null && parking.total_capacity > 0
@@ -280,6 +280,7 @@ const SNAP_FULL = 1;
 export default function ParkingBottomSheet() {
   const { selectedParking, clearSelection } = useMapSelection();
   const isMobile = useIsMobile();
+  console.log("[debug] ParkingBottomSheet render", { selectedParking: selectedParking?.id, isMobile });
   const [snap, setSnap] = useState<number | string | null>(SNAP_PARTIAL);
   const handleOpenChange = (open: boolean) => { if (!open) clearSelection(); };
 
