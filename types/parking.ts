@@ -101,12 +101,19 @@ export type HistorySlot = {
   sample_count: number;
 };
 
+export type DailySlot = {
+  slot: number;
+  time: string;
+  occupancy: number;
+};
+
 export type HistoryData = {
   parking_id: string;
   parking_name: string;
   total_capacity: number;
   day_of_week: number;
   slots: HistorySlot[];
+  today_slots: DailySlot[];
 };
 
 export type Availability = Record<string, { free_spaces: number | null }>;

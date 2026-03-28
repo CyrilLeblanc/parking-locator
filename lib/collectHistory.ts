@@ -1,8 +1,11 @@
 import { prisma } from "./prisma";
 import { COLLECT_SKIP_THRESHOLD_S, todayDayOfWeek } from "./constants";
+import { format } from "date-fns";
 import {
   getLastHistoryUpdate,
   upsertParkingHistorySlot,
+  upsertParkingDailySlot,
+  purgeParkingDailySlots,
 } from "./repositories/parking.repository";
 
 const API_URL = "https://data.mobilites-m.fr/api/dyn/parking/json";
@@ -32,6 +35,7 @@ export async function collectHistory(): Promise<void> {
 
   const day_of_week = todayDayOfWeek(); // Monday = 0
   const slot = Math.floor((now.getHours() * 60 + now.getMinutes()) / 30); // 0–47
+  const todayDate = format(now, "yyyy-MM-dd");
 
   const parkings = await prisma.parking.findMany({
     select: { id: true, total_capacity: true },
@@ -52,8 +56,10 @@ export async function collectHistory(): Promise<void> {
 
     const newValue = Math.max(0, Math.min(100, ((total - entry.nb_places_libres) / total) * 100));
     await upsertParkingHistorySlot(id, day_of_week, slot, newValue);
+    await upsertParkingDailySlot(id, todayDate, slot, newValue);
     updated++;
   }
 
+  await purgeParkingDailySlots(todayDate);
   console.log(`[collect-history] ${now.toISOString()} — ${updated} upserted, ${skipped} skipped.`);
 }

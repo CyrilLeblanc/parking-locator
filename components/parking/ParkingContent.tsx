@@ -50,8 +50,6 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
   if (parking.subscription_non_resident != null)
     fareRows.push({ label: "Abo. non-résident", value: parking.subscription_non_resident });
 
-  const chartData = history?.slots;
-
   const now = new Date();
   const nowSlot =
     selectedDay === today
@@ -66,6 +64,14 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
     history.slots.some((s) => s.avg_occupancy !== null && s.sample_count < 20);
 
   const hasAnyData = history?.slots.some((s) => s.avg_occupancy !== null);
+
+  const dailyMap = new Map(history?.today_slots.map((s) => [s.slot, s.occupancy]) ?? []);
+  const isToday = selectedDay === today;
+
+  const chartData = history?.slots.map((s) => ({
+    ...s,
+    actual_occupancy: isToday ? (dailyMap.get(s.slot) ?? null) : null,
+  }));
 
   // Computed once and reused in both the fare header and the per-row highlight logic
   const estimatedFare =
@@ -248,9 +254,13 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={chartData} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                   <defs>
-                    <linearGradient id="occupancyGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#f44336" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#f44336" stopOpacity={0.05} />
+                    <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#9e9e9e" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#9e9e9e" stopOpacity={0.03} />
+                    </linearGradient>
+                    <linearGradient id="todayGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#1976d2" stopOpacity={0.35} />
+                      <stop offset="95%" stopColor="#1976d2" stopOpacity={0.05} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -269,7 +279,11 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
                     ticks={[0, 50, 100]}
                   />
                   <Tooltip
-                    formatter={(value: number) => [`${Math.round(value)}%`, "Occupation"]}
+                    formatter={(value: number, name: string) => {
+                      if (name === "avg_occupancy") return [`${Math.round(value)}%`, "Tendance"];
+                      if (name === "actual_occupancy") return [`${Math.round(value)}%`, "Aujourd'hui"];
+                      return [`${Math.round(value)}%`, name];
+                    }}
                     labelFormatter={(label) => label || ""}
                     contentStyle={{ fontSize: 12, borderRadius: 8 }}
                   />
@@ -284,13 +298,25 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
                   <Area
                     type="monotone"
                     dataKey="avg_occupancy"
-                    stroke="#f44336"
-                    strokeWidth={2}
-                    fill="url(#occupancyGradient)"
+                    stroke="#bdbdbd"
+                    strokeWidth={1.5}
+                    fill="url(#trendGradient)"
                     connectNulls={false}
                     dot={false}
                     activeDot={{ r: 3 }}
                   />
+                  {isToday && (
+                    <Area
+                      type="monotone"
+                      dataKey="actual_occupancy"
+                      stroke="#1976d2"
+                      strokeWidth={2}
+                      fill="url(#todayGradient)"
+                      connectNulls={false}
+                      dot={false}
+                      activeDot={{ r: 3 }}
+                    />
+                  )}
                 </AreaChart>
               </ResponsiveContainer>
             )}

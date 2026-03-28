@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { getParkingHistory } from "@/lib/repositories/parking.repository";
 import { todayDayOfWeek } from "@/lib/constants";
 import { DayParamSchema } from "@/lib/schemas";
+import { format } from "date-fns";
 
 export async function GET(
   req: NextRequest,
@@ -19,7 +20,8 @@ export async function GET(
   const day = dayResult.data;
 
   try {
-    const { parking, slots } = await getParkingHistory(id, day);
+    const todayDate = format(new Date(), "yyyy-MM-dd");
+    const { parking, slots, today_slots } = await getParkingHistory(id, day, todayDate);
     if (!parking) {
       return Response.json({ error: "Not found" }, { status: 404 });
     }
@@ -30,6 +32,7 @@ export async function GET(
       total_capacity: parking.total_capacity,
       day_of_week: day,
       slots,
+      today_slots,
     });
   } catch {
     return Response.json({ error: "Internal server error" }, { status: 500 });

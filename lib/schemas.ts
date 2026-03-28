@@ -25,12 +25,19 @@ export const HistorySlotSchema = z.object({
   sample_count: z.number().int().min(0),
 });
 
+export const DailySlotSchema = z.object({
+  slot: z.number().int().min(0).max(47),
+  time: z.string(),
+  occupancy: z.number(),
+});
+
 export const HistoryDataSchema = z.object({
   parking_id: z.string(),
   parking_name: z.string(),
   total_capacity: z.number().int().min(0),
   day_of_week: z.number().int().min(0).max(6),
   slots: z.array(HistorySlotSchema),
+  today_slots: z.array(DailySlotSchema),
 });
 
 // ---------------------------------------------------------------------------
