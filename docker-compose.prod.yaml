@@ -20,8 +20,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    ports:
-      - "3000:3000"
+    # ports:
+    #   - "3000:3000"
+    networks:
+      - default
+      - web
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@db:5432/parking_locator
       NODE_ENV: production
@@ -31,3 +34,7 @@ services:
 volumes:
   postgres_data:
   osm_data:
+
+networks:
+  web:
+    external: true
