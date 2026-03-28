@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { format, setHours, setMinutes } from "date-fns";
 import { XIcon } from "lucide-react";
 import {
   AreaChart,
@@ -56,6 +57,9 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
     selectedDay === today
       ? Math.floor((now.getHours() * 60 + now.getMinutes()) / 30)
       : null;
+  const nowSlotLabel = nowSlot !== null
+    ? format(setMinutes(setHours(new Date(0), Math.floor(nowSlot / 2)), nowSlot % 2 === 0 ? 0 : 30), "HH:mm")
+    : null;
 
   const hasLowConfidence =
     history !== null &&
@@ -233,9 +237,9 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
                     labelFormatter={(label) => label || ""}
                     contentStyle={{ fontSize: 12, borderRadius: 8 }}
                   />
-                  {nowSlot !== null && (
+                  {nowSlotLabel !== null && (
                     <ReferenceLine
-                      x={`${Math.floor(nowSlot / 2).toString().padStart(2, "0")}:${nowSlot % 2 === 0 ? "00" : "30"}`}
+                      x={nowSlotLabel}
                       stroke="#1976d2"
                       strokeDasharray="3 3"
                       strokeWidth={1.5}

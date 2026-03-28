@@ -42,7 +42,7 @@ Leaflet map
 ```
 
 History collection runs **continuously** on the server: `instrumentation.ts` starts a
-`setInterval` (every 5 min) when Next.js boots. Data accumulates over days — the UI shows
+cron job (via `croner`, every 5 min) when Next.js boots. Data accumulates over days — the UI shows
 a "low confidence" warning when fewer than 20 samples exist for a slot.
 
 ## Importing data
@@ -81,6 +81,44 @@ Use `formatFareValue(value)` from `lib/fareEstimation.ts` everywhere. It handles
 - decimals → `"1,50 €"` (French comma separator)
 
 Never define a local formatting function for fares.
+
+### Data fetching — TanStack Query
+
+All client data fetching goes through `useQuery` from `@tanstack/react-query`. The
+`QueryClientProvider` is mounted in `app/layout.tsx` via `components/react-query-provider.tsx`.
+
+Query key conventions:
+- `["parkings"]` — static, `staleTime: Infinity`
+- `["zones"]` — static, `staleTime: Infinity`
+- `["availability"]` — polled every 60 s via `refetchInterval`
+- `["parking-history", id, day]` — 5-minute stale window, keyed by parking + day
+
+Do not use `useEffect + fetch` for new data fetching. Add new queries to the relevant
+hook or create a new one following the same pattern.
+
+### URL state — nuqs
+
+Filters and the selected parking are URL-persisted via `nuqs`. This means they survive
+page refresh and can be shared as links.
+
+- Filter params (`pmr`, `ev`, `subscription`, `freeOnly`, `maxHeight`, `duration`) are
+  managed in `contexts/filters.tsx` via `useQueryStates`.
+- The selected parking ID is stored as `?parking=<id>` in `contexts/map-selection.tsx`
+  via `useQueryState`. The full `SelectedParking` object stays in memory; only the ID
+  lives in the URL.
+
+Do not use `useState` for new filter-like or selection state — use nuqs parsers so the
+state is shareable.
+
+### Validation — Zod
+
+All external API boundaries must be validated with Zod. Schemas live in `lib/schemas.ts`.
+
+- External APIs (e.g. the LaMetro availability endpoint) are validated in the service layer
+  before the data is used.
+- History API responses are validated in the hook's `queryFn` via `HistoryDataSchema`.
+- API route query params are validated with `DayParamSchema` (and similar) rather than
+  manual `parseInt` + range checks.
 
 ### Error state in hooks
 

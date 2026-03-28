@@ -1,8 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { FeatureCollection } from "geojson";
+
+async function fetchZones(): Promise<FeatureCollection> {
+  const res = await fetch("/api/zones");
+  if (!res.ok) throw new Error("Failed to fetch zones");
+  return res.json();
+}
 
 type UseZonesResult = {
   zones: FeatureCollection | null;
@@ -11,27 +18,19 @@ type UseZonesResult = {
 };
 
 export function useZones(): UseZonesResult {
-  const [zones, setZones] = useState<FeatureCollection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["zones"],
+    queryFn: fetchZones,
+    staleTime: Infinity,
+  });
 
   useEffect(() => {
-    const controller = new AbortController();
+    if (isError) {
+      toast.error("Impossible de charger les zones de stationnement", {
+        description: "Vérifiez votre connexion et rechargez la page.",
+      });
+    }
+  }, [isError]);
 
-    fetch("/api/zones", { signal: controller.signal })
-      .then((res) => res.json())
-      .then(setZones)
-      .catch((err) => {
-        if (err.name === "AbortError") return;
-        setError(true);
-        toast.error("Impossible de charger les zones de stationnement", {
-          description: "Vérifiez votre connexion et rechargez la page.",
-        });
-      })
-      .finally(() => setLoading(false));
-
-    return () => controller.abort();
-  }, []);
-
-  return { zones, loading, error };
+  return { zones: data ?? null, loading: isPending, error: isError };
 }

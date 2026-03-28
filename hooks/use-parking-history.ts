@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { HistoryDataSchema } from "@/lib/schemas";
 import type { HistoryData } from "@/types/parking";
 
 type UseParkingHistoryResult = {
@@ -9,36 +10,18 @@ type UseParkingHistoryResult = {
   error: boolean;
 };
 
-type FetchResult = {
-  history: HistoryData | null;
-  error: boolean;
-  forId: string;
-  forDay: number;
-};
-
 export function useParkingHistory(parkingId: string | null, day: number): UseParkingHistoryResult {
-  const [result, setResult] = useState<FetchResult | null>(null);
-
-  useEffect(() => {
-    if (parkingId === null) return;
-    const controller = new AbortController();
-    fetch(`/api/parkings/${parkingId}/history?day=${day}`, {
-      signal: controller.signal,
-    })
-      .then((r) => r.json())
-      .then((data: HistoryData) =>
-        setResult({ history: data, error: false, forId: parkingId, forDay: day })
-      )
-      .catch((err) => {
-        if ((err as Error).name !== "AbortError")
-          setResult({ history: null, error: true, forId: parkingId, forDay: day });
-      });
-    return () => controller.abort();
-  }, [parkingId, day]);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["parking-history", parkingId, day],
+    queryFn: async () => {
+      const res = await fetch(`/api/parkings/${parkingId}/history?day=${day}`);
+      if (!res.ok) throw new Error("Failed to fetch history");
+      return HistoryDataSchema.parse(await res.json());
+    },
+    enabled: parkingId !== null,
+    staleTime: 5 * 60_000,
+  });
 
   if (parkingId === null) return { history: null, loading: false, error: false };
-
-  const isStale = result === null || result.forId !== parkingId || result.forDay !== day;
-  if (isStale) return { history: null, loading: true, error: false };
-  return { history: result.history, loading: false, error: result.error };
+  return { history: data ?? null, loading: isPending, error: isError };
 }

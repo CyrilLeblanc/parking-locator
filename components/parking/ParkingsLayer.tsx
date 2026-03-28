@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Marker, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
@@ -104,8 +104,44 @@ export default function ParkingsLayer() {
     return cache.get(key)!;
   }
   const { parkings, availability } = useParkings();
-  const { selectParking } = useMapSelection();
+  const { selectParking, selectedParkingId, selectedParking } = useMapSelection();
   const { estimationDuration, activeFilters, activeFilterCount } = useFilters();
+
+  // Restore selection from URL on initial load
+  useEffect(() => {
+    if (!parkings || !selectedParkingId || selectedParking) return;
+    const feature = parkings.features.find((f) => f.id === selectedParkingId);
+    if (!feature) return;
+    const p = feature.properties as ParkingFeatureProperties;
+    const [lng, lat] = (feature.geometry as Point).coordinates;
+    const avail = availability[selectedParkingId];
+    selectParking({
+      id: selectedParkingId,
+      lat,
+      lng,
+      name: p.name,
+      address: p.address,
+      city: p.city,
+      facility_type: p.facility_type,
+      free: p.free,
+      total_capacity: p.total_capacity,
+      disabled_spaces: p.disabled_spaces,
+      ev_chargers: p.ev_chargers,
+      bike_spaces: p.bike_spaces,
+      operator: p.operator ?? null,
+      source: p.source,
+      footprint: p.footprint ?? null,
+      fare_1h: p.fare_1h,
+      fare_2h: p.fare_2h,
+      fare_3h: p.fare_3h,
+      fare_4h: p.fare_4h,
+      fare_24h: p.fare_24h,
+      subscription_resident: p.subscription_resident,
+      subscription_non_resident: p.subscription_non_resident,
+      free_spaces: avail?.free_spaces ?? null,
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [parkings]);
 
   if (!parkings) return null;
 

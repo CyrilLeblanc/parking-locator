@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { getParkingHistory } from "@/lib/repositories/parking.repository";
 import { todayDayOfWeek } from "@/lib/constants";
+import { DayParamSchema } from "@/lib/schemas";
 
 export async function GET(
   req: NextRequest,
@@ -10,12 +11,12 @@ export async function GET(
 
   const url = new URL(req.url);
   const dayParam = url.searchParams.get("day");
-  const today = todayDayOfWeek();
-  const day = dayParam !== null ? parseInt(dayParam, 10) : today;
 
-  if (isNaN(day) || day < 0 || day > 6) {
+  const dayResult = DayParamSchema.safeParse(dayParam ?? String(todayDayOfWeek()));
+  if (!dayResult.success) {
     return Response.json({ error: "Invalid day" }, { status: 400 });
   }
+  const day = dayResult.data;
 
   try {
     const { parking, slots } = await getParkingHistory(id, day);

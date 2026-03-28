@@ -32,6 +32,10 @@ An open-source interactive map to find and compare parking in Grenoble, France â
 | Framework | Next.js (App Router) + React 19 |
 | Map | Leaflet + react-leaflet + react-leaflet-cluster |
 | Charts | Recharts |
+| Data fetching | TanStack Query (react-query) |
+| Validation | Zod |
+| URL state | nuqs |
+| Date utilities | date-fns |
 | Styling | Tailwind CSS 4 |
 | Language | TypeScript 5 |
 | ORM | Prisma 7 with `@prisma/adapter-pg` |
