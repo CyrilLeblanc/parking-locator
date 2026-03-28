@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { FeatureCollection } from "geojson";
 
 type UseZonesResult = {
@@ -15,11 +16,21 @@ export function useZones(): UseZonesResult {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    fetch("/api/zones")
+    const controller = new AbortController();
+
+    fetch("/api/zones", { signal: controller.signal })
       .then((res) => res.json())
       .then(setZones)
-      .catch(() => setError(true))
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        setError(true);
+        toast.error("Impossible de charger les zones de stationnement", {
+          description: "Vérifiez votre connexion et rechargez la page.",
+        });
+      })
       .finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, []);
 
   return { zones, loading, error };
