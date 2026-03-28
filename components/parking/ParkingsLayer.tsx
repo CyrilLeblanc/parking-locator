@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Marker, Tooltip, useMap } from "react-leaflet";
+import { Marker, Tooltip, useMap, useMapEvent } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Feature, Point, Polygon as GeoJSONPolygon, MultiPolygon, Geometry } from "geojson";
 import L from "leaflet";
@@ -13,6 +13,7 @@ import { useMapSelection } from "@/contexts/map-selection";
 import { useFilters } from "@/contexts/filters";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { matchesParkingFilters } from "@/lib/parkingFilters";
+import { OSM_FOOTPRINTS_MIN_ZOOM } from "@/lib/constants";
 import { estimateParkingFare, formatFareValue } from "@/lib/fareEstimation";
 
 function makeDivIcon(bubbleBg: string, bubbleText: string, pinColor: string): L.DivIcon {
@@ -103,6 +104,9 @@ export default function ParkingsLayer() {
     if (!cache.has(key)) cache.set(key, makeDivIcon("#4caf50", text, pinColor));
     return cache.get(key)!;
   }
+  const [zoom, setZoom] = useState(map.getZoom());
+  useMapEvent("zoomend", () => setZoom(map.getZoom()));
+
   const { parkings, availability } = useParkings();
   const { selectParking, selectedParkingId, selectedParking } = useMapSelection();
   const { estimationDuration, activeFilters, activeFilterCount } = useFilters();
@@ -125,6 +129,7 @@ export default function ParkingsLayer() {
       facility_type: p.facility_type,
       free: p.free,
       total_capacity: p.total_capacity,
+      estimated_capacity: p.estimated_capacity ?? null,
       disabled_spaces: p.disabled_spaces,
       ev_chargers: p.ev_chargers,
       bike_spaces: p.bike_spaces,
@@ -153,6 +158,8 @@ export default function ParkingsLayer() {
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
         const icon = getParkingIcon(avail?.free_spaces, p.source);
+        // Les parkings OSM sont représentés par leurs polygones à zoom ≥ 17
+        if (p.source === "osm" && zoom >= OSM_FOOTPRINTS_MIN_ZOOM) return null;
         const matches = activeFilterCount === 0 || matchesParkingFilters(p, activeFilters);
 
         let priceLabel: string | null = null;
@@ -186,6 +193,7 @@ export default function ParkingsLayer() {
                   facility_type: p.facility_type,
                   free: p.free,
                   total_capacity: p.total_capacity,
+                  estimated_capacity: p.estimated_capacity ?? null,
                   disabled_spaces: p.disabled_spaces,
                   ev_chargers: p.ev_chargers,
                   bike_spaces: p.bike_spaces,

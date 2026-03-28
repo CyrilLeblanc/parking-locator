@@ -14,8 +14,9 @@ model Parking {
   insee_code     String   @db.Char(5)
   facility_type  String
   free           Boolean
-  total_capacity Int
-  disabled_spaces Int
+  total_capacity      Int
+  estimated_capacity  Int?
+  disabled_spaces     Int
   ev_chargers    Int
   bike_spaces    Int
   max_height     Float?

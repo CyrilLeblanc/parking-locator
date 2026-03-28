@@ -10,5 +10,25 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  overpass:
+    image: wiktorn/overpass-api
+    volumes:
+      - overpass-db:/db
+    environment:
+      # Extrait Rhône-Alpes (~200 MB) — importé une seule fois si /db est vide
+      OVERPASS_PLANET_URL: "https://download.geofabrik.de/europe/france/rhone-alpes-latest.osm.bz2"
+      OVERPASS_SPACE: 4294967296   # 4 GB alloués à la DB
+      OVERPASS_CACHE: 512          # MB de cache mémoire
+      OVERPASS_UPDATE_SLEEP: 0     # pas de mise à jour automatique
+    ports:
+      - "12345:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost/api/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 600s  # laisse le temps à l'import initial
+
 volumes:
   postgres_data:
+  overpass-db:

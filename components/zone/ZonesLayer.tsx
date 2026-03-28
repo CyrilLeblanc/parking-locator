@@ -15,7 +15,7 @@ function zoneStyle(feature?: GeoJSON.Feature): PathOptions {
     color,
     fillColor: color,
     fillOpacity: 0.3,
-    weight: 1.5,
+    weight: 0,
   };
 }
 

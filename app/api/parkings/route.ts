@@ -16,6 +16,7 @@ export async function GET() {
         facility_type: row.facility_type,
         free: row.free,
         total_capacity: row.total_capacity,
+        estimated_capacity: row.estimated_capacity,
         disabled_spaces: row.disabled_spaces,
         ev_chargers: row.ev_chargers,
         bike_spaces: row.bike_spaces,

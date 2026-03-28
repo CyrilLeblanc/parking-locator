@@ -6,6 +6,7 @@ export type ParkingRow = {
   facility_type: string;
   free: boolean;
   total_capacity: number;
+  estimated_capacity: number | null;
   disabled_spaces: number;
   ev_chargers: number;
   bike_spaces: number;
@@ -30,6 +31,7 @@ export type ParkingFeatureProperties = {
   facility_type: string;
   free: boolean;
   total_capacity: number;
+  estimated_capacity?: number | null;
   disabled_spaces: number;
   ev_chargers: number;
   bike_spaces: number;
@@ -56,6 +58,7 @@ export type SelectedParking = {
   facility_type: string;
   free: boolean;
   total_capacity: number;
+  estimated_capacity?: number | null;
   disabled_spaces: number;
   ev_chargers: number;
   bike_spaces: number;

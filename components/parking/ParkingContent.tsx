@@ -83,8 +83,12 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
             {parking.address} · {parking.city}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {FACILITY_LABELS[parking.facility_type] ?? parking.facility_type} ·
-            {parking.total_capacity} places
+            {FACILITY_LABELS[parking.facility_type] ?? parking.facility_type}
+            {parking.total_capacity > 0
+              ? ` · ${parking.total_capacity} places`
+              : parking.estimated_capacity
+              ? ` · ~${parking.estimated_capacity} places (estimation)`
+              : null}
           </p>
           {parking.operator && (
             <p className="text-xs text-muted-foreground mt-0.5">Opérateur : {parking.operator}</p>
