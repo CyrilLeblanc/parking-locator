@@ -1,23 +1,29 @@
 # Parking Locator Grenoble
 
-An open source interactive map to help you find and choose a parking spot in Grenoble, France. It shows real-time occupancy for covered car parks and tariff zones for street parking.
+An open-source interactive map to find and compare parking in Grenoble, France — covered car parks with real-time occupancy and street parking zones with live tariff status.
 
 ![Map view with parking markers and zone overlays](public/screenshot.png)
 
 ## Features
 
-- **Interactive map** centered on Grenoble, with marker clustering
-- **42 covered car parks** from the Grenoble-Alpes Métropole (LaMetro) open data
-  - Real-time free spaces (updated every 60 s)
-  - Capacity, disabled spaces, EV chargers, bike spaces, max vehicle height
-  - Fare details (hourly, daily, resident / non-resident subscriptions)
-  - Dynamic pie-chart icons that show occupancy at a glance
-- **Street parking zones** (vert / orange / violet) with polygon overlays
-  - Current tariff status (free / paid / half-fare) based on the time of day
-  - Next tariff-change countdown
-- **Occupancy history** — 30-minute-slot rolling averages per car park
-  - Line chart (Recharts) with day-of-week selector
-  - Automatically collected every 5 minutes in the background
+### Covered car parks
+- **42 car parks** from the Grenoble-Alpes Métropole (LaMetro) open data
+- **Real-time free spaces** polled every 60 s, shown as a badge on each marker
+- **Parking footprint** overlay from OpenStreetMap when you open a car park
+- **Filters** — PMR (disabled), EV chargers, subscriptions, vehicle height (gabarit), free parking
+- **Price estimation** — enter your planned duration to see the estimated cost for each car park
+- **Occupancy history** — 30-minute rolling averages per car park, per day of week, displayed as a line chart
+- **Full detail panel** — capacity, disabled spaces, EV chargers, bike spaces, max height, fare schedule
+- **Directions** — one-tap link to Google Maps navigation
+
+### Street parking zones
+- Polygon overlays for the three tariff zones (vert / orange / violet)
+- Live tariff status (free / paid / half-fare) based on the current time
+- Countdown to the next tariff change
+
+### Map
+- Marker clustering for a clean view at any zoom level
+- Pie-chart icons on car park markers to show occupancy at a glance
 
 ## Tech stack
 
@@ -37,9 +43,10 @@ An open source interactive map to help you find and choose a parking spot in Gre
 | Data | Provider | Refresh |
 |---|---|---|
 | Car park locations & metadata | [LaMetro open data](https://data.mobilites-m.fr) | Manual import |
-| Real-time availability | LaMetro dynamic API | 60 s |
+| Real-time availability | LaMetro dynamic API | Every 60 s |
 | Parking fares | LaMetro norms API | Manual import |
 | Street parking zones | [Grenoble open data](https://data.metropolegrenoble.fr) | Manual import |
+| Parking footprints | OpenStreetMap (Overpass API) | On demand |
 
 ## Getting started
 
@@ -54,13 +61,13 @@ An open source interactive map to help you find and choose a parking spot in Gre
 docker compose up -d
 ```
 
-This starts a PostgreSQL 17 + PostGIS 3.5 container on port 5432.
+Starts a PostgreSQL 17 + PostGIS 3.5 container on port 5432.
 
 ### 2 — Configure environment
 
 ```bash
 cp .env.example .env.local
-# edit .env.local if needed — the default works with docker compose
+# default values work out of the box with docker compose
 ```
 
 `.env.local`:
@@ -78,7 +85,9 @@ npx prisma migrate deploy
 ### 4 — Import data
 
 ```bash
-npm run import   # zones → parkings → fares (in order)
+npm run import              # zones → parkings → fares (core data)
+npm run import:zone-fare-brackets   # street zone tariff rules
+npm run import:osm-parkings         # enrich with OpenStreetMap footprints
 ```
 
 ### 5 — Start the dev server
@@ -89,7 +98,7 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Occupancy history is collected automatically every 5 minutes once the server is running (via `instrumentation.ts`). You can also trigger a single collection manually:
+Occupancy history is collected automatically every 5 minutes while the server runs (via `instrumentation.ts`). To trigger a single collection manually:
 
 ```bash
 npm run collect:history
@@ -97,7 +106,7 @@ npm run collect:history
 
 ## Production deployment (Docker)
 
-The app ships with a multi-stage `Dockerfile` and a `docker-compose.prod.yaml` that runs both the app and the database.
+The project ships with a multi-stage `Dockerfile` and a `docker-compose.prod.yaml` that runs both the app and the database.
 
 ### Build and start
 
@@ -105,9 +114,9 @@ The app ships with a multi-stage `Dockerfile` and a `docker-compose.prod.yaml` t
 POSTGRES_PASSWORD=changeme docker compose -f docker-compose.prod.yaml up -d --build
 ```
 
-- Migrations run automatically on each container start (`prisma migrate deploy`).
-- The app is available on port **3000**.
-- The database is not exposed to the host — only the app can reach it through the internal Docker network.
+- Migrations run automatically on every container start.
+- The app listens on port **3000**.
+- The database is not exposed to the host — only the app container can reach it.
 
 ### First-time data import
 
@@ -117,7 +126,7 @@ Run the import scripts once after the first deployment:
 POSTGRES_PASSWORD=changeme docker compose -f docker-compose.prod.yaml --profile tools run --rm importer
 ```
 
-> The `POSTGRES_PASSWORD` variable is the only required secret. Set it in a `.env.prod` file or export it in your shell before running `docker compose`.
+> `POSTGRES_PASSWORD` is the only required secret. Put it in a `.env.prod` file or export it in your shell before running `docker compose`.
 
 ## Available scripts
 
@@ -127,10 +136,12 @@ POSTGRES_PASSWORD=changeme docker compose -f docker-compose.prod.yaml --profile 
 | `npm run build` | Build for production |
 | `npm start` | Start production server |
 | `npm run lint` | Run ESLint |
-| `npm run import` | Import all data (zones → parkings → fares) |
+| `npm run import` | Import core data (zones → parkings → fares) |
 | `npm run import:zones` | Import street parking zones |
-| `npm run import:parkings` | Import car park locations |
+| `npm run import:parkings` | Import car park locations & metadata |
 | `npm run import:fares` | Import car park tariffs |
+| `npm run import:zone-fare-brackets` | Import street zone tariff rules |
+| `npm run import:osm-parkings` | Import & merge OpenStreetMap parking data |
 | `npm run collect:history` | Collect one occupancy snapshot |
 
 ## Project structure
@@ -138,31 +149,60 @@ POSTGRES_PASSWORD=changeme docker compose -f docker-compose.prod.yaml --profile 
 ```
 app/
   api/
-    parkings/         # GET /api/parkings — GeoJSON car parks
+    parkings/           # GET /api/parkings — GeoJSON car parks
     parkings/[id]/
-      history/        # GET /api/parkings/[id]/history — occupancy by day
-    zones/            # GET /api/zones — GeoJSON street zones
-    availability/     # GET /api/availability — real-time free spaces
-  page.tsx            # Entry point (MapWrapper)
+      history/          # GET /api/parkings/[id]/history — occupancy by day
+    zones/              # GET /api/zones — GeoJSON street zones
+    availability/       # GET /api/availability — real-time free spaces
+  page.tsx              # Entry point (MapWrapper)
 components/
-  Map.tsx             # Main Leaflet map + layers
-  ParkingsLayer.tsx   # Car park markers + clustering
-  ZonesLayer.tsx      # Street zone polygons
-  ParkingBottomSheet.tsx  # Car park detail panel + history chart
-  ZoneBottomSheet.tsx     # Zone tariff panel
+  map/
+    filters/
+      DurationFilter.tsx    # Duration picker for fare estimation
+      ParkingFilters.tsx    # Filter toggles (PMR, EV, subscription, height, free)
+    FilterBar.tsx           # Filter/duration bar wrapper
+    Map.tsx                 # Leaflet map core
+    MapWrapper.tsx          # Map initialisation
+  parking/
+    ParkingBottomSheet.tsx  # Car park detail panel + history chart
+    ParkingFootprintLayer.tsx  # OSM footprint polygon overlay
+    ParkingPinIcon.tsx      # Pie-chart marker icons
+    ParkingsLayer.tsx       # Markers + clustering
+  zone/
+    ZoneBottomSheet.tsx     # Zone tariff panel
+    ZoneLegend.tsx          # Zone colour legend
+    ZonesLayer.tsx          # Zone polygon overlay
+  NavigateButton.tsx        # Google Maps directions link
+hooks/
+  use-parkings.ts           # Car park data fetching
+  use-parking-history.ts    # History data fetching
+  use-zones.ts              # Zone data fetching
+  use-is-mobile.ts
 lib/
-  collectHistory.ts   # Background history collection logic
-  zoneConfig.ts       # Zone tariff schedules & helpers
+  collectHistory.ts         # Background history collection logic
+  constants.ts              # Map config, intervals, history slots
+  fareEstimation.ts         # Price estimation for car parks and zones
+  parkingConfig.ts          # Facility type labels
+  parkingFilters.ts         # Filter matching logic
+  zoneConfig.ts             # Zone tariff schedules & helpers
+  repositories/             # Database query layer
+  services/                 # External API clients
 prisma/
-  schema.prisma       # Database schema
-  migrations/         # SQL migrations
+  schema.prisma             # Database schema
+  migrations/               # SQL migrations
 scripts/
   import-parkings.ts
   import-fares.ts
   import-zones.ts
+  import-zone-fare-brackets.ts
+  import-osm-parkings.ts
   collect-history.ts
-instrumentation.ts    # Starts background history collector
+instrumentation.ts          # Starts background history collector
 ```
+
+## Contributing
+
+Contributions are welcome. Open an issue to discuss a bug or feature before submitting a pull request.
 
 ## License
 
