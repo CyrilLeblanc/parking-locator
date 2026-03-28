@@ -8,11 +8,11 @@ An open-source interactive map to find and compare parking in Grenoble, France �
 
 ### Covered car parks
 - **42 car parks** from the Grenoble-Alpes Métropole (LaMetro) open data
-- **Real-time free spaces** polled every 60 s, shown as a badge on each marker
-- **Parking footprint** overlay from OpenStreetMap when you open a car park
+- **Real-time free spaces** refreshed every 60 s, shown as a badge on each marker
+- **OSM parking footprints** — polygon overlays from OpenStreetMap shown directly on the map with estimated capacity
 - **Filters** — PMR (disabled), EV chargers, subscriptions, vehicle height (gabarit), free parking
 - **Price estimation** — enter your planned duration to see the estimated cost for each car park
-- **Occupancy history** — 30-minute rolling averages per car park, per day of week, displayed as a line chart
+- **Occupancy history** — 30-minute slot averages (EMA-weighted, recent data prioritised) per car park, per day of week; today's actual progression overlaid on the historical trend
 - **Full detail panel** — capacity, disabled spaces, EV chargers, bike spaces, max height, fare schedule
 - **Directions** — one-tap link to Google Maps navigation
 
@@ -24,6 +24,7 @@ An open-source interactive map to find and compare parking in Grenoble, France �
 ### Map
 - Marker clustering for a clean view at any zoom level
 - Pie-chart icons on car park markers to show occupancy at a glance
+- Viewport position (zoom/lat/lng) persisted in the URL hash
 
 ## Tech stack
 
@@ -46,11 +47,12 @@ An open-source interactive map to find and compare parking in Grenoble, France �
 
 | Data | Provider | Refresh |
 |---|---|---|
-| Car park locations & metadata | [LaMetro open data](https://data.mobilites-m.fr) | Manual import |
+| Car park locations & metadata | [LaMetro open data](https://data.mobilites-m.fr) | Weekly (Sun 4 am) |
 | Real-time availability | LaMetro dynamic API | Every 60 s |
-| Parking fares | LaMetro norms API | Manual import |
-| Street parking zones | [Grenoble open data](https://data.metropolegrenoble.fr) | Manual import |
-| Parking footprints | OpenStreetMap (Overpass API) | On demand |
+| Parking fares | LaMetro norms API | Weekly (Sun 4 am) |
+| Street parking zones | [Grenoble open data](https://data.metropolegrenoble.fr) | Weekly (Sun 4 am) |
+| Parking footprints | OpenStreetMap (Overpass API) | Daily (3 am) |
+| Occupancy history | LaMetro dynamic API | Every 5 min |
 
 ## Getting started
 
@@ -102,7 +104,15 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Occupancy history is collected automatically every 5 minutes while the server runs (via `instrumentation.ts`). To trigger a single collection manually:
+The server runs three background jobs automatically via `instrumentation.ts`:
+
+| Job | Schedule |
+|---|---|
+| Occupancy history collection | Every 5 min |
+| OSM parking footprint update | Daily at 3 am |
+| Full data import (parkings, fares, zones) | Sundays at 4 am |
+
+To trigger a single history collection manually:
 
 ```bash
 npm run collect:history

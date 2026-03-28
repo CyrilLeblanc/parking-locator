@@ -42,7 +42,6 @@ COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/eng
 # Scripts, lib et config pour setup.ts et les crons
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/lib ./lib
-COPY --from=builder /app/doc ./doc
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 
