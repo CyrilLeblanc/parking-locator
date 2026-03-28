@@ -95,9 +95,9 @@ export async function upsertParkingHistorySlot(
     ON CONFLICT (parking_id, day_of_week, slot) DO UPDATE SET
       avg_occupancy = CASE
         WHEN parking_history.sample_count < ${EMA_WARMUP_SAMPLES}
-          THEN (parking_history.avg_occupancy * parking_history.sample_count + ${newValue})
+          THEN (parking_history.avg_occupancy * parking_history.sample_count + ${newValue}::float8)
                / (parking_history.sample_count + 1)
-        ELSE ${EMA_ALPHA} * ${newValue} + ${1 - EMA_ALPHA} * parking_history.avg_occupancy
+        ELSE ${EMA_ALPHA}::float8 * ${newValue}::float8 + ${1 - EMA_ALPHA}::float8 * parking_history.avg_occupancy
       END,
       sample_count  = parking_history.sample_count + 1,
       updated_at    = NOW()
