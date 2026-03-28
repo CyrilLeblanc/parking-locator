@@ -2,7 +2,11 @@ import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
+const OVERPASS_MIRRORS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.kumi.systems/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+];
 // Bounding box : sud,ouest,nord,est — Grenoble + couronne
 const BBOX = "45.05,5.60,45.30,5.85";
 
@@ -97,12 +101,22 @@ async function main() {
   const prisma = new PrismaClient({ adapter });
 
   console.log("Fetching OSM parking data from Overpass API…");
-  const res = await fetch(OVERPASS_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `data=${encodeURIComponent(OVERPASS_QUERY)}`,
-  });
-  if (!res.ok) throw new Error(`Overpass API HTTP ${res.status}`);
+  let res: Response | null = null;
+  for (const mirror of OVERPASS_MIRRORS) {
+    console.log(`Trying ${mirror}…`);
+    try {
+      const r = await fetch(mirror, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `data=${encodeURIComponent(OVERPASS_QUERY)}`,
+      });
+      if (r.ok) { res = r; break; }
+      console.warn(`${mirror} returned HTTP ${r.status}, trying next mirror…`);
+    } catch (err) {
+      console.warn(`${mirror} failed: ${err}, trying next mirror…`);
+    }
+  }
+  if (!res) throw new Error("All Overpass mirrors failed");
 
   const data: OverpassResponse = await res.json();
   const elements = data.elements;
@@ -138,6 +152,9 @@ async function main() {
     const tags = el.tags ?? {};
     const parkingType = tags["parking"];
     if (parkingType && EXCLUDED_PARKING_TYPES.has(parkingType)) return false;
+
+    // Toujours accepter les parkings clients (accès réservé aux clients d'un commerce)
+    if (tags["access"] === "customers") return true;
 
     // Garder uniquement les parkings identifiables :
     // un nom spécifique (pas juste "Parking"), un opérateur, ou une capacité ≥ 10
