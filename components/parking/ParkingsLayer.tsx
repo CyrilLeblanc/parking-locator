@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Marker, Tooltip, useMap, useMapEvent } from "react-leaflet";
+import { Marker, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Feature, Point, Polygon as GeoJSONPolygon, MultiPolygon, Geometry } from "geojson";
 import L from "leaflet";
@@ -13,7 +13,6 @@ import { useMapSelection } from "@/contexts/map-selection";
 import { useFilters } from "@/contexts/filters";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { matchesParkingFilters } from "@/lib/parkingFilters";
-import { OSM_FOOTPRINTS_MIN_ZOOM } from "@/lib/constants";
 import { estimateParkingFare, formatFareValue } from "@/lib/fareEstimation";
 
 function makeDivIcon(bubbleBg: string, bubbleText: string, pinColor: string): L.DivIcon {
@@ -67,19 +66,8 @@ export default function ParkingsLayer() {
   const map = useMap();
   const isMobile = useIsMobile();
   const iconCache = useRef(new Map<string, L.DivIcon>());
-  const osmIcon = useRef<L.DivIcon | null>(null);
 
-  function getParkingIcon(freeSpaces: number | null | undefined, source: string): L.DivIcon {
-    if (source === "osm") {
-      osmIcon.current ??= L.divIcon({
-        html: renderToStaticMarkup(<ParkingPinIcon pinColor="#78909c" />),
-        className: "",
-        iconSize: [28, 36],
-        iconAnchor: [14, 34],
-      });
-      return osmIcon.current;
-    }
-
+  function getParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
     const pinColor = "#1565c0";
     const cache = iconCache.current;
 
@@ -104,9 +92,6 @@ export default function ParkingsLayer() {
     if (!cache.has(key)) cache.set(key, makeDivIcon("#4caf50", text, pinColor));
     return cache.get(key)!;
   }
-  const [zoom, setZoom] = useState(map.getZoom());
-  useMapEvent("zoomend", () => setZoom(map.getZoom()));
-
   const { parkings, availability } = useParkings();
   const { selectParking, selectedParkingId, selectedParking } = useMapSelection();
   const { estimationDuration, activeFilters, activeFilterCount } = useFilters();
@@ -157,9 +142,8 @@ export default function ParkingsLayer() {
         const id = feature.id as string;
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
-        const icon = getParkingIcon(avail?.free_spaces, p.source);
-        // Les parkings OSM sont représentés par leurs polygones à zoom ≥ 17
-        if (p.source === "osm" && zoom >= OSM_FOOTPRINTS_MIN_ZOOM) return null;
+        if (p.source === "osm") return null;
+        const icon = getParkingIcon(avail?.free_spaces);
         const matches = activeFilterCount === 0 || matchesParkingFilters(p, activeFilters);
 
         let priceLabel: string | null = null;

@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# OSM extract (généré par scripts/prepare-osm-extract.sh)
+docker/osm/

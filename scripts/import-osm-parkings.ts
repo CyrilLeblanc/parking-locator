@@ -1,26 +1,11 @@
 import "dotenv/config";
+import { createReadStream, existsSync } from "fs";
+import { resolve } from "path";
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const OVERPASS_MIRRORS = [
-  "http://localhost:12345/api/interpreter",  // instance locale Docker (préféré)
-  "https://overpass-api.de/api/interpreter",
-  "https://overpass.kumi.systems/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-];
-// Bounding box : sud,ouest,nord,est — Grenoble + couronne
-const BBOX = "45.05,5.60,45.30,5.85";
-
-// out geom tags; — inclut les coordonnées inline pour ways et relations (plus besoin de nodeMap)
-const OVERPASS_QUERY = `
-[out:json][timeout:60];
-(
-  node["amenity"="parking"]["access"!="private"]["access"!="residents"]["access"!="permit"](${BBOX});
-  way["amenity"="parking"]["access"!="private"]["access"!="residents"]["access"!="permit"](${BBOX});
-  relation["amenity"="parking"]["access"!="private"]["access"!="residents"]["access"!="permit"](${BBOX});
-);
-out geom tags;
-`;
+// Fichier PBF préparé par scripts/prepare-osm-extract.sh
+const PBF_PATH = resolve(process.cwd(), "docker/osm/grenoble.osm.pbf");
 
 // Types de stationnement non pertinents pour un conducteur (voirie, boxs privés…)
 const EXCLUDED_PARKING_TYPES = new Set([
@@ -34,16 +19,33 @@ const EXCLUDED_PARKING_TYPES = new Set([
   "layby",
 ]);
 
+// --- Types PBF ---
+
 type OsmTags = Record<string, string>;
-type LatLon = { lat: number; lon: number };
 
-type OsmNode = { type: "node"; id: number; lat: number; lon: number; tags?: OsmTags };
-type OsmWay = { type: "way"; id: number; geometry?: LatLon[]; tags?: OsmTags };
-type OsmMember = { type: string; ref: number; role: string; geometry?: LatLon[] };
-type OsmRelation = { type: "relation"; id: number; members: OsmMember[]; tags?: OsmTags };
-type OsmElement = OsmNode | OsmWay | OsmRelation;
+type PbfNode = { type: "node"; id: number; lat: number; lon: number; tags: OsmTags };
+type PbfWay  = { type: "way";  id: number; refs: number[];             tags: OsmTags };
+type PbfMember   = { id: number; type: string; role: string };
+type PbfRelation = { type: "relation"; id: number; refs: PbfMember[];  tags: OsmTags };
+type PbfElement  = PbfNode | PbfWay | PbfRelation;
 
-type OverpassResponse = { elements: OsmElement[] };
+// --- Lecture du PBF ---
+
+async function loadPbfElements(path: string): Promise<PbfElement[]> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const OsmPbfParser = require("osm-pbf-parser");
+  return new Promise((res, rej) => {
+    const elements: PbfElement[] = [];
+    const parser = new OsmPbfParser();
+    createReadStream(path)
+      .pipe(parser)
+      .on("data", (items: PbfElement[]) => elements.push(...items))
+      .on("end", () => res(elements))
+      .on("error", rej);
+  });
+}
+
+// --- Logique métier ---
 
 function mapTags(tags: OsmTags = {}) {
   const name =
@@ -93,52 +95,101 @@ function namesOverlap(a: string, b: string): boolean {
 function closeRing(coords: [number, number][]): [number, number][] {
   const first = coords[0];
   const last = coords[coords.length - 1];
-  if (first[0] !== last[0] || first[1] !== last[1]) {
-    return [...coords, first];
-  }
+  if (first[0] !== last[0] || first[1] !== last[1]) return [...coords, first];
   return coords;
 }
 
 function computeCentroid(coords: [number, number][]): [number, number] {
-  // coords sont [lng, lat], exclure le doublon de fermeture
   const ring = coords[0] === coords[coords.length - 1] ? coords.slice(0, -1) : coords;
   const lng = ring.reduce((s, c) => s + c[0], 0) / ring.length;
   const lat = ring.reduce((s, c) => s + c[1], 0) / ring.length;
   return [lng, lat];
 }
 
+/** Shoelace + correction cos(lat) → m² approximatif (précis à ~2% sur Grenoble). */
+function polygonAreaM2(coords: [number, number][]): number {
+  const ring = coords[0] === coords[coords.length - 1] ? coords.slice(0, -1) : coords;
+  let area = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const [x1, y1] = ring[i];
+    const [x2, y2] = ring[(i + 1) % ring.length];
+    area += x1 * y2 - x2 * y1;
+  }
+  const latRad = (ring.reduce((s, c) => s + c[1], 0) / ring.length) * (Math.PI / 180);
+  const mPerDeg = 111_320;
+  return (Math.abs(area) / 2) * mPerDeg * mPerDeg * Math.cos(latRad);
+}
+
+function isParkingUseful(tags: OsmTags, estimatedCapacity = 0): boolean {
+  const parkingType = tags["parking"];
+  if (parkingType && EXCLUDED_PARKING_TYPES.has(parkingType)) return false;
+
+  if (tags["access"] === "customers") return true;
+
+  const name = tags["name"] ?? tags["brand"] ?? "";
+  const hasSpecificName = name.length > 0 && name.toLowerCase() !== "parking";
+  const hasOperator = Boolean(tags["operator"]);
+  const tagCapacity = parseInt(tags["capacity"] ?? "0", 10) || 0;
+  const effectiveCapacity = tagCapacity > 0 ? tagCapacity : estimatedCapacity;
+
+  return hasSpecificName || hasOperator || effectiveCapacity >= 10;
+}
+
+// --- Main ---
+
 async function main() {
+  if (!existsSync(PBF_PATH)) {
+    throw new Error(
+      `Fichier PBF introuvable : ${PBF_PATH}\n` +
+      `Exécutez d'abord : bash scripts/prepare-osm-extract.sh`
+    );
+  }
+
   const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
   const prisma = new PrismaClient({ adapter });
 
-  console.log("Fetching OSM parking data from Overpass API…");
-  let res: Response | null = null;
-  for (const mirror of OVERPASS_MIRRORS) {
-    console.log(`Trying ${mirror}…`);
-    try {
-      const r = await fetch(mirror, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `data=${encodeURIComponent(OVERPASS_QUERY)}`,
-      });
-      const ct = r.headers.get("content-type") ?? "";
-      if (r.ok && ct.includes("json")) { res = r; break; }
-      if (r.ok) {
-        console.warn(`${mirror} returned non-JSON response (${ct}), trying next mirror…`);
-      } else {
-        console.warn(`${mirror} returned HTTP ${r.status}, trying next mirror…`);
-      }
-    } catch (err) {
-      console.warn(`${mirror} failed: ${err}, trying next mirror…`);
+  console.log(`Lecture de ${PBF_PATH}…`);
+  const allElements = await loadPbfElements(PBF_PATH);
+  console.log(`${allElements.length} éléments OSM chargés.`);
+
+  // Index des coordonnées de chaque nœud
+  const nodeMap = new Map<number, [number, number]>();
+  for (const el of allElements) {
+    if (el.type === "node") nodeMap.set(el.id, [el.lon, el.lat]);
+  }
+
+  // Index des géométries de chaque way (nécessaire pour résoudre les membres de relations)
+  const wayGeomMap = new Map<number, [number, number][]>();
+  for (const el of allElements) {
+    if (el.type === "way") {
+      const coords = el.refs
+        .map((id) => nodeMap.get(id))
+        .filter((c): c is [number, number] => c !== undefined);
+      if (coords.length >= 3) wayGeomMap.set(el.id, coords);
     }
   }
-  if (!res) throw new Error("All Overpass mirrors failed");
 
-  const data: OverpassResponse = await res.json();
-  const elements = data.elements;
-  console.log(`Received ${elements.length} OSM elements.`);
+  // Filtrer les éléments parking utiles
+  const parkingElements = allElements.filter((el) => {
+    if (el.tags?.["amenity"] !== "parking") return false;
 
-  // --- Idempotence : reset merged → laMetro, supprimer osm ---
+    let estimatedCapacity = 0;
+    if (el.type === "way") {
+      const coords = wayGeomMap.get(el.id);
+      if (coords) estimatedCapacity = Math.round(polygonAreaM2(closeRing(coords)) / 25);
+    } else if (el.type === "relation") {
+      const outerCoords = (el.refs ?? [])
+        .filter((m) => m.role === "outer" && m.type === "way")
+        .map((m) => wayGeomMap.get(m.id))
+        .find((c): c is [number, number][] => c !== undefined && c.length >= 3);
+      if (outerCoords) estimatedCapacity = Math.round(polygonAreaM2(closeRing(outerCoords)) / 25);
+    }
+
+    return isParkingUseful(el.tags ?? {}, estimatedCapacity);
+  });
+  console.log(`${parkingElements.length} éléments amenity=parking à traiter.`);
+
+  // --- Idempotence ---
   console.log("Resetting previous import…");
   await prisma.$executeRaw`
     UPDATE parking
@@ -151,29 +202,6 @@ async function main() {
   let inserted = 0;
   let skipped = 0;
 
-  // Filtrer : garder uniquement les éléments amenity=parking avec un type utile et identifiables
-  const parkingElements = elements.filter((el) => {
-    if (el.tags?.["amenity"] !== "parking") return false;
-
-    const tags = el.tags ?? {};
-    const parkingType = tags["parking"];
-    if (parkingType && EXCLUDED_PARKING_TYPES.has(parkingType)) return false;
-
-    // Toujours accepter les parkings clients (accès réservé aux clients d'un commerce)
-    if (tags["access"] === "customers") return true;
-
-    // Garder uniquement les parkings identifiables :
-    // un nom spécifique (pas juste "Parking"), un opérateur, ou une capacité ≥ 10
-    const name = tags["name"] ?? tags["brand"] ?? "";
-    const hasSpecificName = name.length > 0 && name.toLowerCase() !== "parking";
-    const hasOperator = Boolean(tags["operator"]);
-    const capacity = parseInt(tags["capacity"] ?? "0", 10) || 0;
-    const hasCapacity = capacity >= 10;
-
-    return hasSpecificName || hasOperator || hasCapacity;
-  });
-  console.log(`${parkingElements.length} éléments amenity=parking à traiter.`);
-
   for (const el of parkingElements) {
     let lng: number;
     let lat: number;
@@ -182,15 +210,10 @@ async function main() {
     if (el.type === "node") {
       lng = el.lon;
       lat = el.lat;
-      // nodes = pas de polygone
 
     } else if (el.type === "way") {
-      const coords: [number, number][] = (el.geometry ?? []).map((p) => [p.lon, p.lat]);
-
-      if (coords.length < 3) {
-        skipped++;
-        continue;
-      }
+      const coords = wayGeomMap.get(el.id);
+      if (!coords || coords.length < 3) { skipped++; continue; }
 
       const ring = closeRing(coords);
       const [cLng, cLat] = computeCentroid(ring);
@@ -199,31 +222,27 @@ async function main() {
       footprintGeoJson = JSON.stringify({ type: "Polygon", coordinates: [ring] });
 
     } else {
-      // relation → reconstruire depuis les membres outer
-      const outerRings = (el.members ?? [])
-        .filter((m) => m.role === "outer" && m.geometry && m.geometry.length >= 3)
-        .map((m) => closeRing(m.geometry!.map((p) => [p.lon, p.lat] as [number, number])));
+      // relation → outer rings depuis wayGeomMap
+      const outerRings = (el.refs ?? [])
+        .filter((m) => m.role === "outer" && m.type === "way")
+        .map((m) => wayGeomMap.get(m.id))
+        .filter((coords): coords is [number, number][] => coords !== undefined && coords.length >= 3)
+        .map((coords) => closeRing(coords));
 
-      if (outerRings.length === 0) {
-        skipped++;
-        continue;
-      }
+      if (outerRings.length === 0) { skipped++; continue; }
 
       const [cLng, cLat] = computeCentroid(outerRings[0]);
       lng = cLng;
       lat = cLat;
-
-      if (outerRings.length === 1) {
-        footprintGeoJson = JSON.stringify({ type: "Polygon", coordinates: outerRings });
-      } else {
-        footprintGeoJson = JSON.stringify({ type: "MultiPolygon", coordinates: outerRings.map((r) => [r]) });
-      }
+      footprintGeoJson = outerRings.length === 1
+        ? JSON.stringify({ type: "Polygon", coordinates: outerRings })
+        : JSON.stringify({ type: "MultiPolygon", coordinates: outerRings.map((r) => [r]) });
     }
 
     const tags = el.tags ?? {};
     const mapped = mapTags(tags);
 
-    // Chercher les parkings LaMetro à ≤150m avec leur distance et nom
+    // Chercher les parkings LaMetro à ≤150m
     type MatchRow = { id: string; name: string; dist: number };
     const candidates = await prisma.$queryRaw<MatchRow[]>`
       SELECT id, name,
@@ -241,16 +260,12 @@ async function main() {
       ORDER BY dist
     `;
 
-    // Règle de merge :
-    // - dist ≤ 50m → toujours merger (très proche, pas besoin de nom)
-    // - dist ≤ 150m → merger uniquement si les noms partagent un mot significatif
     const osmName = mapped.name;
     const match = candidates.find(
       (c) => Number(c.dist) <= 50 || namesOverlap(osmName, c.name)
     );
 
     if (match) {
-      // Merge : on enrichit le parking LaMetro avec les données OSM
       const matchId = match.id;
       if (footprintGeoJson) {
         await prisma.$executeRaw`
@@ -272,9 +287,7 @@ async function main() {
       }
       merged++;
     } else {
-      // Nouveau parking OSM-only
       const osmId = `osm:${el.type}/${el.id}`;
-
       if (footprintGeoJson) {
         await prisma.$executeRaw`
           INSERT INTO parking (
@@ -282,22 +295,11 @@ async function main() {
             total_capacity, disabled_spaces, ev_chargers, bike_spaces,
             max_height, operator, source, osm_id, updated_at, position, footprint
           ) VALUES (
-            ${osmId},
-            ${mapped.name},
-            ${mapped.address},
-            ${mapped.city},
-            ${mapped.insee_code},
-            ${mapped.facility_type},
-            ${mapped.free},
-            ${mapped.total_capacity},
-            ${mapped.disabled_spaces},
-            ${mapped.ev_chargers},
-            ${mapped.bike_spaces},
-            ${mapped.max_height},
-            ${mapped.operator},
-            'osm',
-            ${BigInt(el.id)},
-            NOW(),
+            ${osmId}, ${mapped.name}, ${mapped.address}, ${mapped.city},
+            ${mapped.insee_code}, ${mapped.facility_type}, ${mapped.free},
+            ${mapped.total_capacity}, ${mapped.disabled_spaces}, ${mapped.ev_chargers},
+            ${mapped.bike_spaces}, ${mapped.max_height}, ${mapped.operator},
+            'osm', ${BigInt(el.id)}, NOW(),
             ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326),
             ST_GeomFromGeoJSON(${footprintGeoJson})
           )
@@ -309,22 +311,11 @@ async function main() {
             total_capacity, disabled_spaces, ev_chargers, bike_spaces,
             max_height, operator, source, osm_id, updated_at, position
           ) VALUES (
-            ${osmId},
-            ${mapped.name},
-            ${mapped.address},
-            ${mapped.city},
-            ${mapped.insee_code},
-            ${mapped.facility_type},
-            ${mapped.free},
-            ${mapped.total_capacity},
-            ${mapped.disabled_spaces},
-            ${mapped.ev_chargers},
-            ${mapped.bike_spaces},
-            ${mapped.max_height},
-            ${mapped.operator},
-            'osm',
-            ${BigInt(el.id)},
-            NOW(),
+            ${osmId}, ${mapped.name}, ${mapped.address}, ${mapped.city},
+            ${mapped.insee_code}, ${mapped.facility_type}, ${mapped.free},
+            ${mapped.total_capacity}, ${mapped.disabled_spaces}, ${mapped.ev_chargers},
+            ${mapped.bike_spaces}, ${mapped.max_height}, ${mapped.operator},
+            'osm', ${BigInt(el.id)}, NOW(),
             ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)
           )
         `;
@@ -333,17 +324,15 @@ async function main() {
     }
   }
 
-  // Calculer la capacité estimée pour tous les parkings avec un footprint
-  // Formule : ~25 m² par place (espace + allée), arrondi au-dessus, minimum 1
+  // Calculer la capacité estimée depuis l'emprise (~25 m²/place)
   await prisma.$executeRaw`
     UPDATE parking
     SET estimated_capacity = GREATEST(1, ROUND(ST_Area(ST_Transform(footprint, 2154)) / 25)::int)
     WHERE footprint IS NOT NULL
   `;
-  console.log("Capacités estimées calculées depuis les emprises.");
+  console.log("Capacités estimées calculées.");
 
-  // Filtre par aire : supprimer les petits parkings OSM anonymes (< 200 m²)
-  // Garde les parkings avec un vrai nom, un opérateur, ou une capacité déclarée
+  // Supprimer les petits parkings OSM anonymes (< 200 m²)
   const deleted = await prisma.$executeRaw`
     DELETE FROM parking
     WHERE source = 'osm'
@@ -355,7 +344,7 @@ async function main() {
   `;
 
   console.log(
-    `Done. ${merged} LaMetro parkings enrichis (merged), ${inserted} parkings OSM insérés, ${skipped} ignorés (géométrie invalide), ${deleted} supprimés (aire < 200 m²).`
+    `Done. ${merged} LaMetro parkings enrichis, ${inserted} OSM insérés, ${skipped} ignorés, ${deleted} supprimés (< 200 m²).`
   );
   await prisma.$disconnect();
 }
