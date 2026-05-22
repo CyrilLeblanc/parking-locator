@@ -49,6 +49,7 @@ export default function OsmFootprintsLayer() {
 
         const handleClick = (e: L.LeafletMouseEvent) => {
           L.DomEvent.stopPropagation(e);
+          e.originalEvent.stopPropagation();
           selectParking({
             id,
             lat,
