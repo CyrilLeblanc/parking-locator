@@ -25,9 +25,5 @@ services:
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - osm_data:/app/docker/osm
-
 volumes:
   postgres_data:
-  osm_data:

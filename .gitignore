@@ -40,5 +40,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# OSM extract (généré par scripts/prepare-osm-extract.sh)
+# OSM extract (plus utilisé — remplacé par Overpass API)
 docker/osm/

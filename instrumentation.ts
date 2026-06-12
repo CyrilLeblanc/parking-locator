@@ -9,7 +9,7 @@ export async function register() {
 
   const { Cron } = await import("croner");
   const { collectHistory } = await import("./lib/collectHistory");
-  const { prepareOsmExtract, importOsmParkings } = await import("./lib/imports/osmParkings");
+  const { importOsmParkings } = await import("./lib/imports/osmParkings");
   const { importParkings } = await import("./lib/imports/parkings");
   const { importFares } = await import("./lib/imports/fares");
   const { importZones } = await import("./lib/imports/zones");
@@ -36,7 +36,6 @@ export async function register() {
     async () => {
       try {
         console.log("[osm-update] Starting…");
-        await prepareOsmExtract();
         await importOsmParkings();
         console.log("[osm-update] Done.");
       } catch (err) {

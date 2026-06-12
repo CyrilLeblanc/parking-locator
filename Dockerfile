@@ -16,7 +16,7 @@ RUN npm run build
 # ---- Stage 3: production runner ----
 FROM node:24-bookworm-slim AS runner
 RUN apt-get update \
-  && apt-get install -y osmium-tool curl \
+  && apt-get install -y curl \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -33,7 +33,7 @@ COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/engines ./node_modules/@prisma/engines
 
-# Production node_modules (inclut tsx, csv-parse, osm-pbf-parser, etc.)
+# Production node_modules (inclut tsx, csv-parse, etc.)
 COPY --from=deps /app/node_modules ./node_modules
 # Les engines Prisma doivent venir du builder (binaires spécifiques à l'OS)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
@@ -44,9 +44,6 @@ COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/lib ./lib
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
-
-# Volume OSM (le répertoire doit exister avant le montage)
-RUN mkdir -p docker/osm
 
 RUN groupadd -r app && useradd -r -g app app
 RUN chown -R app:app /app

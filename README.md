@@ -109,7 +109,7 @@ The server runs three background jobs automatically via `instrumentation.ts`:
 | Job | Schedule |
 |---|---|
 | Occupancy history collection | Every 5 min |
-| OSM parking footprint update | Daily at 3 am |
+| OSM parking footprint update (Overpass API) | Daily at 3 am |
 | Full data import (parkings, fares, zones) | Sundays at 4 am |
 
 To trigger a single history collection manually:

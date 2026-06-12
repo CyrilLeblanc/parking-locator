@@ -1,12 +1,11 @@
 import "dotenv/config";
 import { spawnSync } from "child_process";
-import { existsSync } from "fs";
 import { prisma } from "../lib/prisma";
 import { importParkings } from "../lib/imports/parkings";
 import { importFares } from "../lib/imports/fares";
 import { importZones } from "../lib/imports/zones";
 import { importZoneFareBrackets } from "../lib/imports/zoneFareBrackets";
-import { prepareOsmExtract, importOsmParkings, PBF_PATH } from "../lib/imports/osmParkings";
+import { importOsmParkings } from "../lib/imports/osmParkings";
 
 async function count(table: string, where?: string): Promise<number> {
   const rows = await prisma.$queryRawUnsafe<[{ n: bigint }]>(
@@ -52,13 +51,6 @@ export async function setup(): Promise<void> {
   }
 
   // 5. OSM
-  if (!existsSync(PBF_PATH)) {
-    console.log("\n→ prepare-osm-extract");
-    await prepareOsmExtract();
-  } else {
-    console.log("✓ fichier PBF déjà présent");
-  }
-
   if ((await count("parking", "source IN ('osm', 'merged')")) === 0) {
     console.log("\n→ import-osm-parkings");
     await importOsmParkings();

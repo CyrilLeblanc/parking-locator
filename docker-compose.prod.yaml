@@ -29,12 +29,8 @@ services:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@db:5432/parking_locator
       NODE_ENV: production
       TZ: Europe/Paris
-    volumes:
-      - osm_data:/app/docker/osm
-
 volumes:
   postgres_data:
-  osm_data:
 
 networks:
   web:
