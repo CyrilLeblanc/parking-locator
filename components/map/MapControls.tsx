@@ -1,6 +1,7 @@
 "use client";
 
-import { useMap } from "react-leaflet";
+import type { RefObject } from "react";
+import type { Map as LeafletMap } from "leaflet";
 import { Minus, Plus } from "lucide-react";
 import { LocateButtonControl } from "@/components/map/LocateButton";
 import { useMapSelection } from "@/contexts/map-selection";
@@ -12,11 +13,13 @@ const CONTROL_BUTTON_CLASS =
 
 /**
  * Right-docked map controls: zoom in / zoom out / locate.
- * Clustered so the buttons stack vertically and shift together when a bottom sheet
- * opens on mobile, keeping a consistent dock above the sheet.
+ * Lives outside <MapContainer> (like the other overlays) and receives the map
+ * instance via `mapRef` instead of useMap(), since useMap() requires Leaflet
+ * context that only exists inside the container.
+ * Clustered so the buttons stack vertically and shift together when a bottom
+ * sheet opens on mobile, keeping a consistent dock above the sheet.
  */
-export default function MapControls() {
-  const map = useMap();
+export default function MapControls({ mapRef }: { mapRef: RefObject<LeafletMap | null> }) {
   const { selectedParking, selectedZone } = useMapSelection();
   const isMobile = useIsMobile();
 
@@ -29,7 +32,7 @@ export default function MapControls() {
     >
       <button
         type="button"
-        onClick={() => map.zoomIn()}
+        onClick={() => mapRef.current?.zoomIn()}
         aria-label="Zoomer"
         className={CONTROL_BUTTON_CLASS}
       >
@@ -37,7 +40,7 @@ export default function MapControls() {
       </button>
       <button
         type="button"
-        onClick={() => map.zoomOut()}
+        onClick={() => mapRef.current?.zoomOut()}
         aria-label="Dézoomer"
         className={CONTROL_BUTTON_CLASS}
       >

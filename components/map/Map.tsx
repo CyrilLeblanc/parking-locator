@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { MapContainer, TileLayer } from "react-leaflet";
+import type { Map as LeafletMap } from "leaflet";
 import { MapSelectionProvider } from "@/contexts/map-selection";
 import { FiltersProvider } from "@/contexts/filters";
 import ZonesLayer from "@/components/zone/ZonesLayer";
@@ -22,12 +24,15 @@ import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
 import "leaflet/dist/leaflet.css";
 
 export default function Map() {
+  const mapRef = useRef<LeafletMap | null>(null);
+
   return (
     <FiltersProvider>
       <MapSelectionProvider>
         <GeolocationProvider>
           <div className="relative h-full w-full">
             <MapContainer
+              ref={mapRef}
               center={MAP_CENTER}
               zoom={MAP_ZOOM}
               zoomControl={false}
@@ -49,7 +54,7 @@ export default function Map() {
             <ZoneLegend />
             <ZoneBottomSheet />
             <ParkingBottomSheet />
-            <MapControls />
+            <MapControls mapRef={mapRef} />
             <AttributionButton />
           </div>
         </GeolocationProvider>
