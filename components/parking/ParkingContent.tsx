@@ -26,6 +26,13 @@ import type { SelectedParking } from "@/types/parking";
 
 const DAY_LABELS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 
+/** Compact axis tick for an "HH:mm" slot label: "02:00" -> "2h", "14:30" -> "14h30". */
+function formatHourTick(value: string): string {
+  const [hourStr, minuteStr] = value.split(":");
+  const hour = Number.parseInt(hourStr, 10);
+  return minuteStr === "00" ? `${hour}h` : `${hour}h${minuteStr}`;
+}
+
 export function ParkingContent({ parking, onClose }: { parking: SelectedParking; onClose: () => void }) {
   const today = todayDayOfWeek();
   const [selectedDay, setSelectedDay] = useState(today);
@@ -268,7 +275,9 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
                     tick={{ fontSize: 10, fill: "#9e9e9e" }}
                     tickLine={false}
                     axisLine={false}
-                    interval={3}
+                    interval="preserveStartEnd"
+                    minTickGap={20}
+                    tickFormatter={formatHourTick}
                   />
                   <YAxis
                     domain={[0, 100]}
