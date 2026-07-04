@@ -12,7 +12,7 @@ import {
   ResponsiveContainer,
   ReferenceLine,
 } from "recharts";
-import { FACILITY_LABELS } from "@/lib/parkingConfig";
+import { FACILITY_LABELS, facilityCoverage } from "@/lib/parkingConfig";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -45,6 +45,8 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
       : null;
 
   const occupancyBarColor = occupancyColor(occupancyPct ?? 0);
+
+  const coverage = facilityCoverage(parking.facility_type);
 
   const fareRows: { label: string; value: number; durationMin?: number }[] = [];
   if (parking.fare_1h != null) fareRows.push({ label: "jusqu'à 1h", value: parking.fare_1h, durationMin: 60 });
@@ -97,6 +99,7 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {FACILITY_LABELS[parking.facility_type] ?? parking.facility_type}
+            {coverage !== null && ` · ${coverage === "covered" ? "Couvert" : "Non couvert"}`}
             {parking.total_capacity > 0
               ? ` · ${parking.total_capacity} places`
               : parking.estimated_capacity
