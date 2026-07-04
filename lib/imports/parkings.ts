@@ -14,6 +14,7 @@ type ParkingFeature = {
     type_ouvrage: string;
     gratuit: boolean | number | string;
     nb_places: number;
+    nb_pr?: number;
     nb_pmr: number;
     nb_velo: number;
     hauteur_max?: number | string;
@@ -62,6 +63,7 @@ export async function importParkings(): Promise<void> {
         id, name, address, city, insee_code, facility_type, free,
         total_capacity, disabled_spaces, ev_chargers, bike_spaces,
         moto_spaces, moto_ev_spaces, carsharing_spaces, carpool_spaces,
+        relais_spaces,
         max_height, siret, info_url, users_type, info, updated_at, position
       ) VALUES (
         ${p.id},
@@ -79,6 +81,7 @@ export async function importParkings(): Promise<void> {
         ${p.nb_2r_el ?? 0},
         ${p.nb_autopartage ?? 0},
         ${p.nb_covoit ?? 0},
+        ${p.nb_pr ?? 0},
         ${parseFloat_(p.hauteur_max)},
         ${p.num_siret ?? null},
         ${p.url ?? null},
@@ -101,6 +104,7 @@ export async function importParkings(): Promise<void> {
         moto_ev_spaces    = EXCLUDED.moto_ev_spaces,
         carsharing_spaces = EXCLUDED.carsharing_spaces,
         carpool_spaces    = EXCLUDED.carpool_spaces,
+        relais_spaces     = EXCLUDED.relais_spaces,
         max_height        = EXCLUDED.max_height,
         siret             = EXCLUDED.siret,
         info_url          = EXCLUDED.info_url,

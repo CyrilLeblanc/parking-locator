@@ -1,11 +1,21 @@
+import type { ReactNode } from "react";
+
 type Props = {
   bubbleBg?: string;
   bubbleText?: string;
   bubbleFontSize?: string;
   pinColor?: string;
+  /** Center glyph of the pin (default "P"); pass an icon node for relais parkings. */
+  glyph?: ReactNode;
 };
 
-export function ParkingPinIcon({ bubbleBg, bubbleText, bubbleFontSize, pinColor = "#1565c0" }: Props) {
+export function ParkingPinIcon({
+  bubbleBg,
+  bubbleText,
+  bubbleFontSize,
+  pinColor = "#1565c0",
+  glyph = "P",
+}: Props) {
   const showBubble = bubbleText !== undefined && bubbleBg !== undefined;
   return (
     <div style={{ position: "relative", width: showBubble ? 36 : 28, height: showBubble ? 44 : 36 }}>
@@ -20,18 +30,27 @@ export function ParkingPinIcon({ bubbleBg, bubbleText, bubbleFontSize, pinColor 
           d="M14 2 C7.37 2 2 7.37 2 14 C2 22.5 14 34 14 34 C14 34 26 22.5 26 14 C26 7.37 20.63 2 14 2 Z"
           fill={pinColor}
         />
-        <text
-          x={14}
-          y={19}
-          textAnchor="middle"
-          fontFamily="Arial, sans-serif"
-          fontWeight={700}
-          fontSize={14}
-          fill="white"
-        >
-          P
-        </text>
       </svg>
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          top: 0,
+          width: 28,
+          height: 28,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontFamily: "Arial, sans-serif",
+          fontWeight: 700,
+          fontSize: 14,
+          lineHeight: 1,
+          zIndex: 1,
+        }}
+      >
+        {glyph}
+      </div>
       {showBubble && (
         <div
           style={{

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Marker, Tooltip, useMap } from "react-leaflet";
 import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Feature, Point, Polygon as GeoJSONPolygon, MultiPolygon, Geometry } from "geojson";
 import L from "leaflet";
+import { Bus } from "lucide-react";
 import type { ParkingFeatureProperties } from "@/types/parking";
 import { ParkingPinIcon } from "./ParkingPinIcon";
 import { useParkings } from "@/hooks/use-parkings";
@@ -15,11 +16,16 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 import { matchesParkingFilters } from "@/lib/parkingFilters";
 import { estimateParkingFare, formatFareValue } from "@/lib/fareEstimation";
 
-function makeDivIcon(bubbleBg: string, bubbleText: string, pinColor: string): L.DivIcon {
+function makeDivIcon(
+  bubbleBg: string,
+  bubbleText: string,
+  pinColor: string,
+  glyph?: ReactNode
+): L.DivIcon {
   const bubbleFontSize = bubbleText.length > 2 ? "9px" : "11px";
   return L.divIcon({
     html: renderToStaticMarkup(
-      <ParkingPinIcon bubbleBg={bubbleBg} bubbleText={bubbleText} bubbleFontSize={bubbleFontSize} pinColor={pinColor} />
+      <ParkingPinIcon bubbleBg={bubbleBg} bubbleText={bubbleText} bubbleFontSize={bubbleFontSize} pinColor={pinColor} glyph={glyph} />
     ),
     className: "",
     iconSize: [36, 44],
@@ -67,29 +73,36 @@ export default function ParkingsLayer() {
   const isMobile = useIsMobile();
   const iconCache = useRef(new Map<string, L.DivIcon>());
 
-  function getParkingIcon(freeSpaces: number | null | undefined): L.DivIcon {
-    const pinColor = "#1565c0";
+  function getParkingIcon(
+    freeSpaces: number | null | undefined,
+    relais: boolean
+  ): L.DivIcon {
+    // Relais (P+R) parkings get a distinct teal pin with a bus glyph so they no
+    // longer read as ordinary parkings. Availability still drives the bubble.
+    const pinColor = relais ? "#00897b" : "#1565c0";
+    const glyph = relais ? <Bus color="white" size={14} strokeWidth={2.5} /> : undefined;
+    const prefix = relais ? "relais-" : "";
     const cache = iconCache.current;
 
     if (freeSpaces === null || freeSpaces === undefined) {
-      const key = "unknown";
-      if (!cache.has(key)) cache.set(key, makeDivIcon("#7b8fa1", "–", pinColor));
+      const key = `${prefix}unknown`;
+      if (!cache.has(key)) cache.set(key, makeDivIcon("#7b8fa1", "–", pinColor, glyph));
       return cache.get(key)!;
     }
     if (freeSpaces === 0) {
-      const key = "full";
-      if (!cache.has(key)) cache.set(key, makeDivIcon("#f44336", "0", pinColor));
+      const key = `${prefix}full`;
+      if (!cache.has(key)) cache.set(key, makeDivIcon("#f44336", "0", pinColor, glyph));
       return cache.get(key)!;
     }
     if (freeSpaces <= 9) {
-      const key = `orange-${freeSpaces}`;
-      if (!cache.has(key)) cache.set(key, makeDivIcon("#ff9800", String(freeSpaces), pinColor));
+      const key = `${prefix}orange-${freeSpaces}`;
+      if (!cache.has(key)) cache.set(key, makeDivIcon("#ff9800", String(freeSpaces), pinColor, glyph));
       return cache.get(key)!;
     }
 
     const text = freeSpaces > 99 ? "99+" : String(freeSpaces);
-    const key = `green-${text}`;
-    if (!cache.has(key)) cache.set(key, makeDivIcon("#4caf50", text, pinColor));
+    const key = `${prefix}green-${text}`;
+    if (!cache.has(key)) cache.set(key, makeDivIcon("#4caf50", text, pinColor, glyph));
     return cache.get(key)!;
   }
   const { parkings, availability } = useParkings();
@@ -122,6 +135,7 @@ export default function ParkingsLayer() {
       moto_ev_spaces: p.moto_ev_spaces,
       carsharing_spaces: p.carsharing_spaces,
       carpool_spaces: p.carpool_spaces,
+      relais_spaces: p.relais_spaces ?? 0,
       max_height: p.max_height ?? null,
       operator: p.operator ?? null,
       info_url: p.info_url ?? null,
@@ -150,7 +164,8 @@ export default function ParkingsLayer() {
         const [lng, lat] = (feature.geometry as Point).coordinates;
         const avail = availability[id];
         if (p.source === "osm") return null;
-        const icon = getParkingIcon(avail?.free_spaces);
+        const isRelais = (p.relais_spaces ?? 0) > 0;
+        const icon = getParkingIcon(avail?.free_spaces, isRelais);
         const matches = activeFilterCount === 0 || matchesParkingFilters(p, activeFilters);
 
         let priceLabel: string | null = null;
@@ -192,6 +207,7 @@ export default function ParkingsLayer() {
                   moto_ev_spaces: p.moto_ev_spaces,
                   carsharing_spaces: p.carsharing_spaces,
                   carpool_spaces: p.carpool_spaces,
+                  relais_spaces: p.relais_spaces ?? 0,
                   max_height: p.max_height ?? null,
                   operator: p.operator ?? null,
                   info_url: p.info_url ?? null,

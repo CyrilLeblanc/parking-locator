@@ -68,6 +68,7 @@ export default function OsmFootprintsLayer() {
             moto_ev_spaces: p.moto_ev_spaces,
             carsharing_spaces: p.carsharing_spaces,
             carpool_spaces: p.carpool_spaces,
+            relais_spaces: p.relais_spaces ?? 0,
             max_height: p.max_height ?? null,
             operator: p.operator ?? null,
             info_url: p.info_url ?? null,

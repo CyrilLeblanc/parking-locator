@@ -13,6 +13,7 @@ export async function getAllParkings(): Promise<ParkingRow[]> {
     SELECT p.id, p.name, p.address, p.city, p.facility_type, p.free, p.total_capacity,
            p.estimated_capacity, p.disabled_spaces, p.ev_chargers, p.bike_spaces,
            p.moto_spaces, p.moto_ev_spaces, p.carsharing_spaces, p.carpool_spaces,
+           p.relais_spaces,
            p.max_height, p.operator, p.info_url, p.info, p.source,
            ST_AsGeoJSON(COALESCE(ST_Centroid(p.footprint), p.position)) AS geojson,
            ST_AsGeoJSON(p.footprint) AS footprint_geojson,

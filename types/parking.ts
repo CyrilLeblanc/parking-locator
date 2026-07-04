@@ -14,6 +14,7 @@ export type ParkingRow = {
   moto_ev_spaces: number;
   carsharing_spaces: number;
   carpool_spaces: number;
+  relais_spaces: number;
   max_height: number | null;
   operator: string | null;
   info_url: string | null;
@@ -45,6 +46,7 @@ export type ParkingFeatureProperties = {
   moto_ev_spaces: number;
   carsharing_spaces: number;
   carpool_spaces: number;
+  relais_spaces: number;
   max_height?: number | null;
   operator?: string | null;
   info_url?: string | null;
@@ -78,6 +80,7 @@ export type SelectedParking = {
   moto_ev_spaces: number;
   carsharing_spaces: number;
   carpool_spaces: number;
+  relais_spaces: number;
   max_height?: number | null;
   operator?: string | null;
   info_url?: string | null;

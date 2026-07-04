@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { format, setHours, setMinutes } from "date-fns";
-import { XIcon } from "lucide-react";
+import { Bus, XIcon } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -142,8 +142,14 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
       )}
 
       {/* Badges */}
-      {(parking.free || parking.disabled_spaces > 0 || parking.ev_chargers > 0 || parking.bike_spaces > 0 || parking.moto_spaces > 0 || parking.moto_ev_spaces > 0 || parking.carsharing_spaces > 0 || parking.carpool_spaces > 0) && (
+      {(parking.free || parking.disabled_spaces > 0 || parking.ev_chargers > 0 || parking.bike_spaces > 0 || parking.moto_spaces > 0 || parking.moto_ev_spaces > 0 || parking.carsharing_spaces > 0 || parking.carpool_spaces > 0 || parking.relais_spaces > 0) && (
         <div className="flex flex-wrap gap-1.5 mb-3">
+          {parking.relais_spaces > 0 && (
+            <Badge className="bg-[#00897b] text-white border-transparent gap-1">
+              <Bus className="h-3 w-3" />
+              Parc relais
+            </Badge>
+          )}
           {parking.free && (
             <Badge className="bg-[#4caf50] text-white border-transparent">Gratuit</Badge>
           )}
