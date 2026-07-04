@@ -8,7 +8,13 @@ RUN npm ci --omit=dev
 FROM node:24-bookworm-slim AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+# Tailwind v4 offloads CSS compilation to lightningcss, whose native binding ships as
+# an optional dev-only package (lightningcss-linux-x64-gnu). `npm ci` can drop it in
+# some build environments, which breaks `next build` with
+# "Cannot find module '../lightningcss.linux-x64-gnu.node'". Install it explicitly.
+# Keep this version in sync with `lightningcss` in package-lock.json (currently 1.32.0).
+RUN npm ci \
+ && npm install --no-save lightningcss-linux-x64-gnu@1.32.0
 COPY . .
 RUN npx prisma generate
 RUN npm run build
