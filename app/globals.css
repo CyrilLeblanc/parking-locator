@@ -155,3 +155,13 @@ body {
     @apply font-sans;
   }
 }
+
+/*
+ * Map background: override leaflet.css' default `.leaflet-container { background:#ddd }`
+ * to a dark grey matching the dark tile theme. Prevents white flashes while panning/zooming
+ * before tiles repaint. `!important` is required because leaflet.css is not layered and
+ * its source order relative to this stylesheet is not guaranteed at bundle time.
+ */
+.leaflet-container {
+  background: #3b373f !important;
+}

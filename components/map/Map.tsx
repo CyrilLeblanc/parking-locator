@@ -14,7 +14,8 @@ import FilterBar from "@/components/map/FilterBar";
 import DurationFilter from "@/components/map/filters/DurationFilter";
 import ParkingFilters from "@/components/map/filters/ParkingFilters";
 import UserLocationLayer from "@/components/map/UserLocationLayer";
-import LocateButton from "@/components/map/LocateButton";
+import MapControls from "@/components/map/MapControls";
+import AttributionButton from "@/components/map/AttributionButton";
 import MapHashSync from "@/components/map/MapHashSync";
 import { GeolocationProvider } from "@/contexts/geolocation";
 import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
@@ -30,7 +31,8 @@ export default function Map() {
               center={MAP_CENTER}
               zoom={MAP_ZOOM}
               zoomControl={false}
-              className="h-full w-full bg-[#3b373f]"
+              attributionControl={false}
+              className="h-full w-full"
             >
               <TileLayer url={MAP_TILE_URL} />
               <ZonesLayer />
@@ -47,7 +49,8 @@ export default function Map() {
             <ZoneLegend />
             <ZoneBottomSheet />
             <ParkingBottomSheet />
-            <LocateButton />
+            <MapControls />
+            <AttributionButton />
           </div>
         </GeolocationProvider>
       </MapSelectionProvider>
