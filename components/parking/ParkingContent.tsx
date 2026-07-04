@@ -20,6 +20,7 @@ import { useFilters } from "@/contexts/filters";
 import { useParkingHistory } from "@/hooks/use-parking-history";
 import { NavigateButton } from "@/components/NavigateButton";
 import { estimateParkingFare, formatDuration, formatFareValue } from "@/lib/fareEstimation";
+import { occupancyColor } from "@/lib/occupancyColor";
 import { todayDayOfWeek } from "@/lib/constants";
 import type { SelectedParking } from "@/types/parking";
 
@@ -36,8 +37,7 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
       ? Math.round(((parking.total_capacity - parking.free_spaces) / parking.total_capacity) * 100)
       : null;
 
-  const availColor =
-    parking.free_spaces === null ? "#7b8fa1" : parking.free_spaces === 0 ? "#f44336" : "#4caf50";
+  const occupancyBarColor = occupancyColor(occupancyPct ?? 0);
 
   const fareRows: { label: string; value: number; durationMin?: number }[] = [];
   if (parking.fare_1h != null) fareRows.push({ label: "jusqu'à 1h", value: parking.fare_1h, durationMin: 60 });
@@ -114,14 +114,14 @@ export function ParkingContent({ parking, onClose }: { parking: SelectedParking;
       {/* Availability */}
       {parking.source !== "osm" && parking.free_spaces !== null && (
         <div className="mb-3">
-          <div className="font-bold text-[15px] mb-1.5" style={{ color: availColor }}>
+          <div className="font-bold text-[15px] mb-1.5" style={{ color: occupancyBarColor }}>
             {parking.free_spaces === 0 ? "Complet" : `${parking.free_spaces} places libres`}
           </div>
           <div className="flex items-center gap-2">
             <div className="flex-1 h-1.5 rounded bg-muted overflow-hidden">
               <div
                 className="h-full rounded"
-                style={{ width: `${occupancyPct ?? 0}%`, background: availColor }}
+                style={{ width: `${occupancyPct ?? 0}%`, background: occupancyBarColor }}
               />
             </div>
             <span className="text-[11px] text-muted-foreground whitespace-nowrap">
