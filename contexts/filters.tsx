@@ -11,7 +11,6 @@ import {
 export type ActiveFilters = {
   pmr: boolean;
   ev: boolean;
-  subscription: boolean;
   maxHeight: "suv" | "utility" | null;
   freeOnly: boolean;
 };
@@ -20,7 +19,6 @@ const filtersParsers = {
   duration: parseAsInteger,
   pmr: parseAsBoolean.withDefault(false),
   ev: parseAsBoolean.withDefault(false),
-  subscription: parseAsBoolean.withDefault(false),
   freeOnly: parseAsBoolean.withDefault(false),
   maxHeight: parseAsStringLiteral(["suv", "utility"] as const),
 };
@@ -50,11 +48,10 @@ export function FiltersProvider({ children }: { children: React.ReactNode }) {
     () => ({
       pmr: params.pmr,
       ev: params.ev,
-      subscription: params.subscription,
       freeOnly: params.freeOnly,
       maxHeight: params.maxHeight,
     }),
-    [params.pmr, params.ev, params.subscription, params.freeOnly, params.maxHeight]
+    [params.pmr, params.ev, params.freeOnly, params.maxHeight]
   );
 
   const setFilter = useCallback(
@@ -65,14 +62,13 @@ export function FiltersProvider({ children }: { children: React.ReactNode }) {
   );
 
   const clearFilters = useCallback(() => {
-    setParams({ pmr: false, ev: false, subscription: false, freeOnly: false, maxHeight: null });
+    setParams({ pmr: false, ev: false, freeOnly: false, maxHeight: null });
   }, [setParams]);
 
   const activeFilterCount = useMemo(
     () =>
       (activeFilters.pmr ? 1 : 0) +
       (activeFilters.ev ? 1 : 0) +
-      (activeFilters.subscription ? 1 : 0) +
       (activeFilters.maxHeight !== null ? 1 : 0) +
       (activeFilters.freeOnly ? 1 : 0),
     [activeFilters]

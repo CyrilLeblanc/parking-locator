@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Accessibility, Zap, CreditCard, Car, Truck, BadgeDollarSign, SlidersHorizontal, XIcon } from "lucide-react";
+import { Accessibility, Zap, Car, Truck, BadgeDollarSign, SlidersHorizontal, XIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Drawer, DrawerContent, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { useFilters } from "@/contexts/filters";
@@ -10,7 +10,6 @@ import { useIsMobile } from "@/hooks/use-is-mobile";
 const FILTERS = [
   { key: "pmr", icon: Accessibility, label: "PMR" },
   { key: "ev", icon: Zap, label: "EV" },
-  { key: "subscription", icon: CreditCard, label: "Abo." },
   { key: "freeOnly", icon: BadgeDollarSign, label: "Gratuit" },
 ] as const;
 
