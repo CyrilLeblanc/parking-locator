@@ -32,10 +32,13 @@ export function ParkingPinIcon({
         />
       </svg>
       <div
+        // Anchor the glyph box the same way as the pin SVG (bottom-anchored) so it
+        // tracks the round head when the wrapper grows to fit the availability bubble.
+        // 8 = pin SVG height (36) − glyph box height (28).
         style={{
           position: "absolute",
           left: 0,
-          top: 0,
+          bottom: 8,
           width: 28,
           height: 28,
           display: "flex",
