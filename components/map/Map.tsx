@@ -15,11 +15,13 @@ import ParkingBottomSheet from "@/components/parking/ParkingBottomSheet";
 import FilterBar from "@/components/map/FilterBar";
 import DurationFilter from "@/components/map/filters/DurationFilter";
 import ParkingFilters from "@/components/map/filters/ParkingFilters";
+import SearchPanel from "@/components/search/SearchPanel";
 import UserLocationLayer from "@/components/map/UserLocationLayer";
 import MapControls from "@/components/map/MapControls";
 import AttributionButton from "@/components/map/AttributionButton";
 import MapHashSync from "@/components/map/MapHashSync";
 import { GeolocationProvider } from "@/contexts/geolocation";
+import { MapInstanceProvider } from "@/contexts/map-instance";
 import { MAP_CENTER, MAP_ZOOM, MAP_TILE_URL } from "@/lib/constants";
 import "leaflet/dist/leaflet.css";
 
@@ -30,33 +32,38 @@ export default function Map() {
     <FiltersProvider>
       <MapSelectionProvider>
         <GeolocationProvider>
-          <div className="relative h-full w-full">
-            <MapContainer
-              ref={mapRef}
-              center={MAP_CENTER}
-              zoom={MAP_ZOOM}
-              zoomControl={false}
-              attributionControl={false}
-              className="h-full w-full"
-            >
-              <TileLayer url={MAP_TILE_URL} />
-              <ZonesLayer />
-              <OsmFootprintsLayer />
-              <ParkingsLayer />
-              <ParkingFootprintLayer />
-              <UserLocationLayer />
-              <MapHashSync />
-            </MapContainer>
-            <FilterBar>
-              <DurationFilter />
-              <ParkingFilters />
-            </FilterBar>
-            <ZoneLegend />
-            <ZoneBottomSheet />
-            <ParkingBottomSheet />
-            <MapControls mapRef={mapRef} />
-            <AttributionButton />
-          </div>
+          <MapInstanceProvider mapRef={mapRef}>
+            <div className="relative h-full w-full">
+              <MapContainer
+                ref={mapRef}
+                center={MAP_CENTER}
+                zoom={MAP_ZOOM}
+                zoomControl={false}
+                attributionControl={false}
+                className="h-full w-full"
+              >
+                <TileLayer url={MAP_TILE_URL} />
+                <ZonesLayer />
+                <OsmFootprintsLayer />
+                <ParkingsLayer />
+                <ParkingFootprintLayer />
+                <UserLocationLayer />
+                <MapHashSync />
+              </MapContainer>
+              <div className="pointer-events-none absolute left-3 right-3 top-3 z-[1000] flex flex-col gap-2">
+                <SearchPanel />
+                <FilterBar>
+                  <DurationFilter />
+                  <ParkingFilters />
+                </FilterBar>
+              </div>
+              <ZoneLegend />
+              <ZoneBottomSheet />
+              <ParkingBottomSheet />
+              <MapControls mapRef={mapRef} />
+              <AttributionButton />
+            </div>
+          </MapInstanceProvider>
         </GeolocationProvider>
       </MapSelectionProvider>
     </FiltersProvider>

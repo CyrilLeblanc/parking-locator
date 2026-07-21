@@ -15,6 +15,8 @@ import { useFilters } from "@/contexts/filters";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { matchesParkingFilters } from "@/lib/parkingFilters";
 import { estimateParkingFare, formatFareValue } from "@/lib/fareEstimation";
+import { featureToSelectedParking } from "@/lib/parking-selection";
+import { panToParking, SHEET_WIDTH, DRAWER_SNAP } from "@/contexts/map-instance";
 
 function makeDivIcon(
   bubbleBg: string,
@@ -51,8 +53,6 @@ function createClusterIcon(cluster: { getChildCount: () => number }) {
   });
 }
 
-const SHEET_WIDTH = 400;
-const DRAWER_SNAP = 0.5;
 const FOOTPRINT_MAX_ZOOM = 17;
 
 function footprintToBounds(footprint: Geometry): L.LatLngBounds | null {
@@ -114,43 +114,8 @@ export default function ParkingsLayer() {
     if (!parkings || !selectedParkingId || selectedParking) return;
     const feature = parkings.features.find((f) => f.id === selectedParkingId);
     if (!feature) return;
-    const p = feature.properties as ParkingFeatureProperties;
-    const [lng, lat] = (feature.geometry as Point).coordinates;
     const avail = availability[selectedParkingId];
-    selectParking({
-      id: selectedParkingId,
-      lat,
-      lng,
-      name: p.name,
-      address: p.address,
-      city: p.city,
-      facility_type: p.facility_type,
-      free: p.free,
-      total_capacity: p.total_capacity,
-      estimated_capacity: p.estimated_capacity ?? null,
-      disabled_spaces: p.disabled_spaces,
-      ev_chargers: p.ev_chargers,
-      bike_spaces: p.bike_spaces,
-      moto_spaces: p.moto_spaces,
-      moto_ev_spaces: p.moto_ev_spaces,
-      carsharing_spaces: p.carsharing_spaces,
-      carpool_spaces: p.carpool_spaces,
-      relais_spaces: p.relais_spaces ?? 0,
-      max_height: p.max_height ?? null,
-      operator: p.operator ?? null,
-      info_url: p.info_url ?? null,
-      info: p.info ?? null,
-      source: p.source,
-      footprint: p.footprint ?? null,
-      fare_1h: p.fare_1h,
-      fare_2h: p.fare_2h,
-      fare_3h: p.fare_3h,
-      fare_4h: p.fare_4h,
-      fare_24h: p.fare_24h,
-      subscription_resident: p.subscription_resident,
-      subscription_non_resident: p.subscription_non_resident,
-      free_spaces: avail?.free_spaces ?? null,
-    });
+    selectParking(featureToSelectedParking(feature, avail?.free_spaces ?? null));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [parkings]);
 
@@ -189,46 +154,13 @@ export default function ParkingsLayer() {
                 // Empêche la propagation vers les layers dessous (ZonesLayer)
                 // qui appellerait selectZone et effacerait la sélection du parking
                 L.DomEvent.stopPropagation(e);
-                selectParking({
-                  id,
-                  lat,
-                  lng,
-                  name: p.name,
-                  address: p.address,
-                  city: p.city,
-                  facility_type: p.facility_type,
-                  free: p.free,
-                  total_capacity: p.total_capacity,
-                  estimated_capacity: p.estimated_capacity ?? null,
-                  disabled_spaces: p.disabled_spaces,
-                  ev_chargers: p.ev_chargers,
-                  bike_spaces: p.bike_spaces,
-                  moto_spaces: p.moto_spaces,
-                  moto_ev_spaces: p.moto_ev_spaces,
-                  carsharing_spaces: p.carsharing_spaces,
-                  carpool_spaces: p.carpool_spaces,
-                  relais_spaces: p.relais_spaces ?? 0,
-                  max_height: p.max_height ?? null,
-                  operator: p.operator ?? null,
-                  info_url: p.info_url ?? null,
-                  info: p.info ?? null,
-                  source: p.source,
-                  footprint: p.footprint ?? null,
-                  fare_1h: p.fare_1h,
-                  fare_2h: p.fare_2h,
-                  fare_3h: p.fare_3h,
-                  fare_4h: p.fare_4h,
-                  fare_24h: p.fare_24h,
-                  subscription_resident: p.subscription_resident,
-                  subscription_non_resident: p.subscription_non_resident,
-                  free_spaces: avail?.free_spaces ?? null,
-                });
-                const { x: mapW, y: mapH } = map.getSize();
-                const bottomRight = isMobile
-                  ? L.point(0, mapH * DRAWER_SNAP)
-                  : L.point(SHEET_WIDTH, 0);
+                selectParking(featureToSelectedParking(feature, avail?.free_spaces ?? null));
 
                 if (p.footprint) {
+                  const { y: mapH } = map.getSize();
+                  const bottomRight = isMobile
+                    ? L.point(0, mapH * DRAWER_SNAP)
+                    : L.point(SHEET_WIDTH, 0);
                   const bounds = footprintToBounds(p.footprint);
                   if (bounds) {
                     map.fitBounds(bounds, {
@@ -240,14 +172,7 @@ export default function ParkingsLayer() {
                   }
                 }
 
-                // Fallback sans footprint : pan vers l'espace visible
-                const targetX = isMobile ? mapW / 2 : (mapW - SHEET_WIDTH) / 2;
-                const targetY = isMobile ? (mapH * (1 - DRAWER_SNAP)) / 2 : mapH / 2;
-                const currentPt = map.latLngToContainerPoint([lat, lng]);
-                map.panBy(
-                  [currentPt.x - targetX, currentPt.y - targetY],
-                  { animate: true, duration: 0.3 }
-                );
+                panToParking(map, { lat, lng }, isMobile);
               },
             }}
           >
