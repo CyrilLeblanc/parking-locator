@@ -14,11 +14,24 @@ services:
       timeout: 5s
       retries: 5
 
+  nlp:
+    build: ./nlp-processor
+    restart: unless-stopped
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   app:
     build: .
     restart: unless-stopped
     depends_on:
       db:
+        condition: service_healthy
+      nlp:
         condition: service_healthy
     ports:
       - "3010:3000"
@@ -27,6 +40,7 @@ services:
       - web
     environment:
       DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-changeme}@db:5432/parking_locator
+      PLUMBER_BASE_URL: http://nlp:8000
       NODE_ENV: production
       TZ: Europe/Paris
 volumes:
