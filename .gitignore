@@ -42,3 +42,6 @@ next-env.d.ts
 
 # OSM extract (plus utilisé — remplacé par Overpass API)
 docker/osm/
+
+# Serwist (generated service worker)
+public/sw*
